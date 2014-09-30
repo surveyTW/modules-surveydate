@@ -1,0 +1,168 @@
+<?php
+
+/**
+ * Implements hook_permission().
+ */
+function surveydate_permission() {
+  return array(
+    'access surveydate content' => array(
+      'title' => t('Access content for the Survey Date module'),
+    )
+  );
+}
+
+/**
+ * Implements hook_menu().
+ */
+function surveydate_menu(){
+  $items = array();
+  $items['surveydate'] = array(
+    'title' => t('Survey Date'),
+    'page callback'    => 'drupal_get_form',
+    'page arguments'   => array('surveydate_form'),
+    'access arguments' => array('access content'),
+    'description' => t('Survey Date'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
+
+/**
+ * This function is called the "form builder". It builds the form.
+ * Notice, it takes one argument, the $form_state
+ */
+function surveydate_form($form_state) {
+  $form = array();
+
+  $form['title'] = array(
+    '#required' => '0',
+    '#size' => '60',
+    '#weight' => '0',
+    '#type' => 'textfield',
+    '#title' => t('Topic'),
+  );
+
+  $form['textdate'] = array(
+    '#required' => '0',
+    '#size' => '120',
+    '#weight' => '1',
+    '#type' => 'textfield',
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Submit',
+  );
+
+  return $form;
+}
+
+function surveydate_form_validate($form, &$form_state) {
+    /*$year_of_birth = $form_state['values']['year_of_birth'];
+    if ($year_of_birth && ($year_of_birth < 1900 || $year_of_birth > 2000)) {
+        form_set_error('year_of_birth', 'Enter a year between 1900 and 2000.');
+    }*/
+}
+
+// Adds a submit handler/function to our form to send a successful
+// completion message to the screen.
+function surveydate_form_submit($form, &$form_state) {
+    save_webform($form);
+    drupal_set_message(t('The form has been submitted.'));
+}
+
+function save_webform($form) {
+   global $user;
+
+   $selectdate = $form['textdate']['#value'];
+   $tmp = explode( ',', $selectdate);
+
+   $selectdate_items = '';
+   for( $i=0; $i<count($tmp) ; $i++) {
+      $selectdate_items .= $tmp[$i] . "|" . $tmp[$i] . "\n";
+   }
+   $selectdate_items = substr($selectdate_items, 0 , -1);
+
+   $node = new stdClass();
+   $node->type = 'webform';
+   node_object_prepare($node);
+   $node->title = $form['title']['#value'];
+   $node->language = LANGUAGE_NONE;
+   $node->body[LANGUAGE_NONE][0]['value']   = '';
+   $node->body[LANGUAGE_NONE][0]['format']  = 'full_html';
+   $node->uid = $user->uid;
+   $node->promote = 0;
+   $node->comment = 0;
+
+   // Create the webform components.
+   $components = array(
+       array(
+         'name' => 'User Name',
+         'form_key' => 'username',
+         'type' => 'textfield',
+         'weight' => 1,
+         'pid' => 0,
+         'extra' => array(
+            'title_display' => 'none',
+            'private' => 0, ),
+      ),
+
+      array(
+         'name' => 'Select Date',
+         'form_key' => 'selectdate',
+         'type' => 'select',
+         'weight' => 2,
+         'pid' => 0,
+         'extra' => array(
+            'title_display' => 'before',
+            'private' => 0,
+            'multiple' => TRUE,
+            'items' => $selectdate_items,
+            'aslist' => FALSE,),
+      ),
+   );
+
+   // Setup notification email.
+   $emails = array(
+      array(
+         'email' => $user->mail,
+         'subject' => 'default',
+         'from_name' => 'default',
+         'from_address' => 'default',
+         'template' => 'default',
+         'excluded_components' => array(),
+      ),
+   );
+
+   // Attach the webform to the node.
+   $node->webform = array(
+      'confirmation' => '',
+      'confirmation_format' => NULL,
+      'redirect_url' => '<confirmation>',
+      'status' => '1',
+      'block' => '0',
+      'teaser' => '0',
+      'allow_draft' => '0',
+      'auto_save' => '0',
+      'submit_notice' => '1',
+      'submit_text' => '',
+      'submit_limit' => '-1', // User can submit more than once.
+      'submit_interval' => '-1',
+      'total_submit_limit' => '-1',
+      'total_submit_interval' => '-1',
+      'record_exists' => TRUE,
+      'roles' => array(
+         0 => '1', // Anonymous user can submit this webform.
+      ),
+
+      'emails' => $emails,
+      'components' => $components,
+   );
+
+   // Save the node.
+   node_save($node);
+}
+
+?>
+
