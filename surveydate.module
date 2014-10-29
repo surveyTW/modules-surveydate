@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Implements hook_permission().
  */
@@ -7,9 +6,13 @@ function surveydate_permission() {
   return array(
     'access surveydate content' => array(
       'title' => t('Access content for the Survey Date module'),
+    ),
+    'access update surveydate content' => array(
+      'title' => t('Access content for the Update Survey Date module'),
     )
   );
 }
+
 
 /**
  * Implements hook_menu().
@@ -20,9 +23,16 @@ function surveydate_menu(){
     'title' => t('Survey Date'),
     'page callback'    => 'drupal_get_form',
     'page arguments'   => array('surveydate_form'),
-    'access arguments' => array('access content'),
+    'access arguments' => array('access surveydate content'),
     'description' => t('Survey Date'),
     'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['update_surveydate'] = array(
+    'title' => 'Update Survey Date',
+    'page callback' => '_update_surveydate_page',
+    'access arguments' => array('access update surveydate content'),
+    'type' => MENU_CALLBACK,
   );
 
   return $items;
@@ -33,20 +43,64 @@ function surveydate_menu(){
  * Notice, it takes one argument, the $form_state
  */
 function surveydate_form($form_state) {
+
+  global $user;
+
   $form = array();
 
   $form['title'] = array(
     '#required' => '0',
-    '#size' => '60',
     '#weight' => '0',
+    '#size' => 60,
+    '#maxlength' => 255,
     '#type' => 'textfield',
-    '#title' => t('Topic'),
+    '#title' => t('Title'),
   );
 
-  $form['textdate'] = array(
+  $form['description'] = array(
     '#required' => '0',
-    '#size' => '120',
-    '#weight' => '1',
+    '#weight' => '0',
+    '#rows' => 5,
+    '#cols' => 60,
+    '#wysiwyg' => false,
+    '#type' => 'textarea',
+    '#title' => t('Description'),
+  );
+
+  $form['name'] = array(
+    '#required' => '0',
+    '#weight' => '2',
+    '#size' => 60,
+    '#maxlength' => 255,
+    '#default_value' => $user->name,
+    '#type' => 'textfield',
+    '#title' => t('Name'),
+  );
+
+  $form['email'] = array(
+    '#required' => '0',
+    '#weight' => '3',
+    '#size' => 60,
+    '#maxlength' => 255,
+    '#default_value' => $user->mail,
+    '#type' => 'textfield',
+    '#title' => t('E-Mail'),
+  );
+
+  $form['location'] = array(
+    '#required' => '0',
+    '#weight' => '4',
+    '#size' => 60,
+    '#maxlength' => 255,
+    '#type' => 'textfield',
+    '#title' => t('Location'),
+  );
+
+  $form['date'] = array(
+    '#required' => '0',
+    '#weight' => '5',
+    '#size' => 60,
+    '#maxlength' => 255,
     '#type' => 'textfield',
   );
 
@@ -65,104 +119,77 @@ function surveydate_form_validate($form, &$form_state) {
     }*/
 }
 
+
 // Adds a submit handler/function to our form to send a successful
 // completion message to the screen.
 function surveydate_form_submit($form, &$form_state) {
-    save_webform($form);
-    drupal_set_message(t('The form has been submitted.'));
+    save_surveydate($form);
+    //drupal_set_message(t('The form has been submitted.'));
 }
 
-function save_webform($form) {
-   global $user;
+function save_surveydate($form) {
+    global $user;
 
-   $selectdate = $form['textdate']['#value'];
-   $tmp = explode( ',', $selectdate);
+    $objNode = new stdClass();
+    $objNode->title = $form['title']['#value'];
+    $objNode->type = 'surveydate';
 
-   $selectdate_items = '';
-   for( $i=0; $i<count($tmp) ; $i++) {
-      $selectdate_items .= $tmp[$i] . "|" . $tmp[$i] . "\n";
+    node_object_prepare($objNode); // Sets some defaults. Invokes hook_prepare() and hook_node_prepare().
+
+    $objNode->uid = $user->uid;
+
+    $objNode->language = LANGUAGE_NONE; // Or e.g. 'en' if locale is enabled
+    $objNode->status = 1; //(1 or 0): published or not
+    $objNode->promote = 0; //(1 or 0): promoted to front page
+    $objNode->comment = 2; // 0 = comments disabled, 1 = read only, 2 = read/write
+
+    $objNode->field_description[LANGUAGE_NONE][0]['value'] = $form['description']['#value'];
+    $objNode->field_name[LANGUAGE_NONE][0]['value']        = $form['name']['#value'];
+    $objNode->field_email[LANGUAGE_NONE][0]['value']       = $form['email']['#value'];
+    $objNode->field_location[LANGUAGE_NONE][0]['value']    = $form['location']['#value'];
+    $objNode->field_date[LANGUAGE_NONE][0]['value']        = $form['date']['#value'];
+    $objNode->field_survey[LANGUAGE_NONE][0]['value']      = '';
+
+    $objNode = node_submit($objNode); // Prepare node for saving
+    node_save($objNode);
+
+    // Create a path alias for the node.
+    $domain = md5($user->name . time());
+
+    $path['alias'] = $domain;
+    $path['source'] = 'node/' . $objNode->nid;
+    $path['language'] = LANGUAGE_NONE;
+    path_save($path);
+
+    drupal_goto($domain);
+
+}
+
+function _update_surveydate_page() {
+   $oMessage = new stdClass();
+
+   $json = file_get_contents('php://input');
+   $obj  = json_decode($json);
+
+   $tmp = explode('/',drupal_get_normal_path($obj->path));
+   $nid = $tmp[1];
+   $node = node_load($nid);
+
+   if ( $node ) {
+      $data = $node->field_survey[LANGUAGE_NONE][0]['value'];
+      $ay = json_decode($data);
+      $ay[] = $obj->data;
+      $node->field_survey[LANGUAGE_NONE][0]['value'] = json_encode($ay);
+      node_save($node);
+
+      $oMessage->code = 1;
+      $oMessage->message = 'OK';
+   } else {
+      $oMessage->code = 0;
+      $oMessage->message = 'ERROR';
    }
-   $selectdate_items = substr($selectdate_items, 0 , -1);
 
-   $node = new stdClass();
-   $node->type = 'webform';
-   node_object_prepare($node);
-   $node->title = $form['title']['#value'];
-   $node->language = LANGUAGE_NONE;
-   $node->body[LANGUAGE_NONE][0]['value']   = '';
-   $node->body[LANGUAGE_NONE][0]['format']  = 'full_html';
-   $node->uid = $user->uid;
-   $node->promote = 0;
-   $node->comment = 0;
-
-   // Create the webform components.
-   $components = array(
-       array(
-         'name' => 'User Name',
-         'form_key' => 'username',
-         'type' => 'textfield',
-         'weight' => 1,
-         'pid' => 0,
-         'extra' => array(
-            'title_display' => 'none',
-            'private' => 0, ),
-      ),
-
-      array(
-         'name' => 'Select Date',
-         'form_key' => 'selectdate',
-         'type' => 'select',
-         'weight' => 2,
-         'pid' => 0,
-         'extra' => array(
-            'title_display' => 'before',
-            'private' => 0,
-            'multiple' => TRUE,
-            'items' => $selectdate_items,
-            'aslist' => FALSE,),
-      ),
-   );
-
-   // Setup notification email.
-   $emails = array(
-      array(
-         'email' => $user->mail,
-         'subject' => 'default',
-         'from_name' => 'default',
-         'from_address' => 'default',
-         'template' => 'default',
-         'excluded_components' => array(),
-      ),
-   );
-
-   // Attach the webform to the node.
-   $node->webform = array(
-      'confirmation' => '',
-      'confirmation_format' => NULL,
-      'redirect_url' => '<confirmation>',
-      'status' => '1',
-      'block' => '0',
-      'teaser' => '0',
-      'allow_draft' => '0',
-      'auto_save' => '0',
-      'submit_notice' => '1',
-      'submit_text' => '',
-      'submit_limit' => '-1', // User can submit more than once.
-      'submit_interval' => '-1',
-      'total_submit_limit' => '-1',
-      'total_submit_interval' => '-1',
-      'record_exists' => TRUE,
-      'roles' => array(
-         0 => '1', // Anonymous user can submit this webform.
-      ),
-
-      'emails' => $emails,
-      'components' => $components,
-   );
-
-   // Save the node.
-   node_save($node);
+   echo json_encode($oMessage);
 }
 
 ?>
-

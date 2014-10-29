@@ -1,0 +1,5 @@
+name = SurveyDate
+description = SurveyDate module.
+core = 7.x
+package = SurveyDate modules
+files[] = surveydate.module
