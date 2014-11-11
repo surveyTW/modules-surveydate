@@ -1,5 +1,14 @@
 name = SurveyDate
 description = SurveyDate module.
+dependencies[] = libraries
+dependencies[] = phpmailer
 core = 7.x
+configure = admin/config/system/phpmailer
 package = SurveyDate modules
 files[] = surveydate.module
+files[] = includes/phpmailer.class.inc
+
+
+; Libraries
+;files[] = class.phpmailer.php
+;files[] = class.smtp.php
