@@ -170,12 +170,12 @@ function save_surveydate($form) {
      //Dun test mail code
      global $base_url;
 
-    drupal_set_message($path['source']);  
-    drupal_set_message($base_url);  
+   // drupal_set_message($path['source']);  
+    //drupal_set_message($base_url);  
     
     $subject = t('Dun test code'); // subject of e-mail
   //  $body = "Hi".$form['name']['#value']." You had created a activity survey form. The path is http://54.199.171.173/drupal".$domain; //it might be any variable from the form eg. $form_state['values']['your_field']
-    $body=t("Hi @name.\n\nYou has created a new surveydate acitiviy.\n\n E-mail sent from @site-name and survey path is @site-path ",
+    $body=t("Hi @name.\n\nYou has created a new surveydate activity.\n\n E-mail sent from @site-name and survey path is @site-path.\n\n ",
      array('@name' => $user->name,
     	   '@site-name' => variable_get('site_name', 'Drupal'),
     	   '@site-path' => $base_url.'/'.$domain,// . '/' . drupal_get_path('module', 'custom')('site_path', 'Drupal'),
@@ -189,11 +189,11 @@ function save_surveydate($form) {
      );
      
    $user_address=$form['email']['#value'];
-   drupal_set_message($user_address);
+  // drupal_set_message($user_address);
    
 	if (phpmailer_enabled()) {
       drupal_mail('surveydate', 'surveydate_submit', $user_address, language_default(),$params);
-      drupal_set_message(t('phpmailer was enabled.'));
+//      drupal_set_message(t('phpmailer was enabled.'));
     }
     // Otherwise, prepare and send the test mail manually.
     else {
@@ -204,7 +204,7 @@ function save_surveydate($form) {
       // @see drupal_mail_send()
       //module_load_include('inc', 'phpmailer', 'includes/phpmailer.drupal');
       //phpmailer_send($message);
-      drupal_set_message(t('phpmailer was disabled.')); 
+  //    drupal_set_message(t('phpmailer was disabled.')); 
     }
     drupal_goto($domain);
 
@@ -248,7 +248,7 @@ function surveydate_mail($key, &$message, $params) {
 	  $message['body'] = $params['body'];
       //$message['body'][] = t('@name sent you the following message:', array('@name' => $user->name), $options);
       //$message['body'][] = check_plain($params['message']);
-      drupal_set_message($params['body']);  
+   //   drupal_set_message($params['body']);  
     
 	  break;
 		
