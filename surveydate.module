@@ -152,6 +152,7 @@ function save_surveydate($form) {
     $objNode->field_location[LANGUAGE_NONE][0]['value']    = $form['location']['#value'];
     $objNode->field_date[LANGUAGE_NONE][0]['value']        = $form['date']['#value'];
     $objNode->field_survey[LANGUAGE_NONE][0]['value']      = '';
+    $objNode->field_result[LANGUAGE_NONE][0]['value']      = '';
 
     $objNode = node_submit($objNode); // Prepare node for saving
     node_save($objNode);
@@ -270,7 +271,16 @@ function _update_surveydate_page() {
       $data = $node->field_survey[LANGUAGE_NONE][0]['value'];
       $ay = json_decode($data);
       $ay[] = $obj->data;
+      $ayResult = json_decode($node->field_result[LANGUAGE_NONE][0]['value']);
+	      dvm($obj->data);
+      foreach($ay as $key=>$row){
+	      foreach($row as $i=>$value){
+		      $ayResult[$i] += $value;
+	      }
+      }
+      dvm($ayResult);
       $node->field_survey[LANGUAGE_NONE][0]['value'] = json_encode($ay);
+      $node->field_result[LANGUAGE_NONE][0]['value'] = json_encode($ayResult);
       node_save($node);
 
       $oMessage->code = 1;
