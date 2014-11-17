@@ -252,6 +252,18 @@ function surveydate_mail($key, &$message, $params) {
    //   drupal_set_message($params['body']);  
     
 	  break;
+	  
+	  case 'surveydate_save':  
+     // drupal_set_message(t('Case= Surveydate_submit'));
+	  $message['subject'] = t('E-mail sent from @site-name', array('@site-name' => variable_get('site_name', 'Drupal')), $options);
+      // Note that the message body is an array, not a string.
+	  
+	  $message['body'] = $params['body'];
+      //$message['body'][] = t('@name sent you the following message:', array('@name' => $user->name), $options);
+      //$message['body'][] = check_plain($params['message']);
+   //   drupal_set_message($params['body']);  
+    
+	  break;
 		
   }
 }
@@ -288,6 +300,54 @@ function _update_surveydate_page() {
    }
 
    echo json_encode($oMessage);
+   
+
+     
+
+    global $base_url;
+    $user_address=$node->field_email[LANGUAGE_NONE][0]['value'];
+ 
+	$domain=$obj->path;
+
+    
+   // dpm($domain);
+    $curr_user=count($ay)-1;
+
+    $subject = t(''); // subject of e-mail
+//  $body = "Hi".$form['name']['#value']." You had created a activity survey form. The path is http://54.199.171.173/drupal".$domain; //it might be any variable from the form eg. $form_state['values']['your_field']
+    $body=t("Hi @name.\n\n @current-user has created a new surveydate form.\n\n E-mail sent from @site-name and survey path is @site-path.\n\n ",
+     array('@name' => $node->field_name[LANGUAGE_NONE][0]['value'],
+    	   '@current-user'=>$ay[$curr_user]->name,
+    	   '@site-name' => variable_get('site_name', 'Drupal'),
+    	   '@site-path' => $base_url.'/'.$domain,// . '/' . drupal_get_path('module', 'custom')('site_path', 'Drupal'),
+    	   )
+     );
+//echo $base_url . '/' . drupal_get_path('module', 'custom') .
+//params is the array passed to hook_mail function 
+    $params = array(
+     'subject' => $subject,
+     'body' => array(token_replace($body, array('callback' => 'user_mail_tokens', 'sanitize' => FALSE)),),
+     );
+//     dpm($params); 
+     
+   
+	if (phpmailer_enabled()) {
+      drupal_mail('surveydate', 'surveydate_save', $user_address, language_default(),$params);
+//      drupal_set_message(t('phpmailer was enabled.'));
+    }
+    // Otherwise, prepare and send the test mail manually.
+    else {
+      // Prepare the message without sending.
+      $message = drupal_mail('surveydate', 'surveydate_save', $user_address, NULL, $params, NULL, FALSE);
+      // Send the message. drupal_mail_wrapper() is only defined when PHPMailer
+      // is enabled, so drupal_mail_send() cannot be used.
+      // @see drupal_mail_send()
+      module_load_include('inc', 'phpmailer', 'includes/phpmailer.drupal');
+      phpmailer_send($message);
+  //    drupal_set_message(t('phpmailer was disabled.')); 
+    }
+   
+   
 }
 
 ?>
