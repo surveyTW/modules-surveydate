@@ -149,18 +149,18 @@ class DrupalPHPMailer extends PHPMailer implements MailSystemInterface {
   /**
    * Overrides PHPMailer::__destruct().
    */
- // public function __destruct() {
+  public function __destruct() {
     // Disable debug output if SMTP keep-alive is enabled.
     // PHP is most likely shutting down altogether (this class is instantiated
     // as a static singleton). Since logging facilities (e.g., database
     // connection) quite potentially have been shut down already, simply turn
     // off SMTP debugging. Without this override, debug output would be printed
     // on the screen and CLI output.
- //   if ($this->SMTPKeepAlive && isset($this->smtp->do_debug)) {
- //     $this->smtp->do_debug = 0;
- //   }
- //   parent::__destruct();
- // }
+    if ($this->SMTPKeepAlive && isset($this->smtp->do_debug)) {
+      $this->smtp->do_debug = 0;
+    }
+    parent::__destruct();
+  }
 
   /**
    * Provide more user-friendly error messages.
