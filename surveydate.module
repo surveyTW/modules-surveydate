@@ -190,10 +190,11 @@ function save_surveydate($form) {
      );
      
    $user_address=$form['email']['#value'];
-  // drupal_set_message($user_address);
-   
+   drupal_set_message($user_address);
+   $sitemail=variable_get('site_mail','drupal');
+   drupal_set_message($sitemail);
 	if (phpmailer_enabled()) {
-      drupal_mail('surveydate', 'surveydate_submit', $user_address, language_default(),$params);
+      drupal_mail('surveydate', 'surveydate_submit', $user_address, language_default(),$params,$sitemail,TRUE);
 //      drupal_set_message(t('phpmailer was enabled.'));
     }
     // Otherwise, prepare and send the test mail manually.
