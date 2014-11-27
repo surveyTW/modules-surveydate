@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Implements hook_permission().
  */
@@ -44,7 +45,6 @@ function surveydate_menu(){
  * Notice, it takes one argument, the $form_state
  */
 function surveydate_form($form_state) {
-
   global $user;
 
   $form = array();
@@ -126,8 +126,6 @@ function surveydate_form_validate($form, &$form_state) {
 function surveydate_form_submit($form, &$form_state) {
     save_surveydate($form);
     drupal_set_message(t('The form has been submitted.'));
-    
-    
 }
 
 function save_surveydate($form) {
@@ -150,6 +148,7 @@ function save_surveydate($form) {
     $objNode->field_name[LANGUAGE_NONE][0]['value']        = $form['name']['#value'];
     $objNode->field_email[LANGUAGE_NONE][0]['value']       = $form['email']['#value'];
     $objNode->field_location[LANGUAGE_NONE][0]['value']    = $form['location']['#value'];
+    get_location_woeid($objNode, $form['location']['#value']);
     $objNode->field_date[LANGUAGE_NONE][0]['value']        = $form['date']['#value'];
     $objNode->field_survey[LANGUAGE_NONE][0]['value']      = '';
     $objNode->field_result[LANGUAGE_NONE][0]['value']      = '';
@@ -166,14 +165,12 @@ function save_surveydate($form) {
     path_save($path);
 
 
-    
-     
-     //Dun test mail code
-     global $base_url;
+    //Dun test mail code
+    global $base_url;
 
-   // drupal_set_message($path['source']);  
-    //drupal_set_message($base_url);  
-    
+    //drupal_set_message($path['source']);
+    //drupal_set_message($base_url);
+
     $subject = t('Dun test code'); // subject of e-mail
   //  $body = "Hi".$form['name']['#value']." You had created a activity survey form. The path is http://54.199.171.173/drupal".$domain; //it might be any variable from the form eg. $form_state['values']['your_field']
     $body=t("Hi @name.\n\nYou has created a new surveydate activity.\n\n E-mail sent from @site-name and survey path is @site-path.\n\n ",
@@ -183,12 +180,12 @@ function save_surveydate($form) {
     	   )
      );
  //echo $base_url . '/' . drupal_get_path('module', 'custom') .
-//params is the array passed to hook_mail function 
+//params is the array passed to hook_mail function
     $params = array(
      'subject' => $subject,
      'body' => array(token_replace($body, array('callback' => 'user_mail_tokens', 'sanitize' => FALSE)),),
-     );
-     
+    );
+
    $user_address=$form['email']['#value'];
    drupal_set_message($user_address);
    $sitemail=variable_get('site_mail','drupal');
@@ -206,18 +203,14 @@ function save_surveydate($form) {
       // @see drupal_mail_send()
       //module_load_include('inc', 'phpmailer', 'includes/phpmailer.drupal');
       //phpmailer_send($message);
-  //    drupal_set_message(t('phpmailer was disabled.')); 
+  //    drupal_set_message(t('phpmailer was disabled.'));
     }
     drupal_goto($domain);
-
 }
 
 /**
  * Implementation of hook_mail().
  */
-
-//}
-
 function surveydate_mail($key, &$message, $params) {
   global $user;
 
@@ -242,30 +235,29 @@ function surveydate_mail($key, &$message, $params) {
       // that a normal use of '<' will result in truncation of the message.
       $message['body'][] = check_plain($params['message']);
       break;
-      case 'surveydate_submit':  
+      case 'surveydate_submit':
      // drupal_set_message(t('Case= Surveydate_submit'));
 	  $message['subject'] = t('E-mail sent from @site-name', array('@site-name' => variable_get('site_name', 'Drupal')), $options);
       // Note that the message body is an array, not a string.
-	  
+
 	  $message['body'] = $params['body'];
       //$message['body'][] = t('@name sent you the following message:', array('@name' => $user->name), $options);
       //$message['body'][] = check_plain($params['message']);
-   //   drupal_set_message($params['body']);  
-    
+   //   drupal_set_message($params['body']);
+
 	  break;
-	  
-	  case 'surveydate_save':  
+
+	  case 'surveydate_save':
      // drupal_set_message(t('Case= Surveydate_submit'));
 	  $message['subject'] = t('E-mail sent from @site-name', array('@site-name' => variable_get('site_name', 'Drupal')), $options);
       // Note that the message body is an array, not a string.
-	  
+
 	  $message['body'] = $params['body'];
       //$message['body'][] = t('@name sent you the following message:', array('@name' => $user->name), $options);
       //$message['body'][] = check_plain($params['message']);
-   //   drupal_set_message($params['body']);  
-    
+   //   drupal_set_message($params['body']);
+
 	  break;
-		
   }
 }
 
@@ -301,16 +293,14 @@ function _update_surveydate_page() {
    }
 
    echo json_encode($oMessage);
-   
 
-     
 
-    global $base_url;
-    $user_address=$node->field_email[LANGUAGE_NONE][0]['value'];
- 
-	$domain=$obj->path;
+   global $base_url;
+   $user_address=$node->field_email[LANGUAGE_NONE][0]['value'];
 
-    
+   $domain=$obj->path;
+
+
    // dpm($domain);
     $curr_user=count($ay)-1;
 
@@ -324,14 +314,14 @@ function _update_surveydate_page() {
     	   )
      );
 //echo $base_url . '/' . drupal_get_path('module', 'custom') .
-//params is the array passed to hook_mail function 
+//params is the array passed to hook_mail function
     $params = array(
      'subject' => $subject,
      'body' => array(token_replace($body, array('callback' => 'user_mail_tokens', 'sanitize' => FALSE)),),
      );
-//     dpm($params); 
-     
-   
+//     dpm($params);
+
+
 	if (phpmailer_enabled()) {
       drupal_mail('surveydate', 'surveydate_save', $user_address, language_default(),$params);
 //      drupal_set_message(t('phpmailer was enabled.'));
@@ -345,10 +335,43 @@ function _update_surveydate_page() {
       // @see drupal_mail_send()
       module_load_include('inc', 'phpmailer', 'includes/phpmailer.drupal');
       phpmailer_send($message);
-  //    drupal_set_message(t('phpmailer was disabled.')); 
+  //    drupal_set_message(t('phpmailer was disabled.'));
     }
-   
-   
+}
+
+function get_location_woeid($objNode, $form_location) {
+    // Get latitude & longitude from google
+    $address = urlencode($form_location);
+    $region = "taipei";
+    $json = file_get_contents("http://maps.google.com/maps/api/geocode/json?address=$address&sensor=false&region=$region");
+
+    $decoded = json_decode($json);
+    if ($decoded->status == "OK") {
+        $lat = $decoded->{'results'}[0]->{'geometry'}->{'location'}->{'lat'};
+        $lng = $decoded->{'results'}[0]->{'geometry'}->{'location'}->{'lng'};
+
+        // Form YQL query and build URI to YQL Web service
+        $YQL_URL = "https://query.yahooapis.com/v1/public/yql";
+        $location = $lat . ", " . $lng;
+        $query = "geo.placefinder";
+        $yql_query = "select * from $query where text=\"$location\" and gflags=\"R\"";
+        $yql_query_url = $YQL_URL . "?q=" . urlencode($yql_query) . "&format=json";
+
+        // Make call with cURL
+        $session = curl_init($yql_query_url);
+        curl_setopt($session, CURLOPT_RETURNTRANSFER, true);
+        $json = curl_exec($session);
+
+        // Convert JSON to PHP object
+        $phpObj = json_decode($json);
+
+        // Confirm that results were returned before parsing
+        if (!is_null($phpObj->query->results))
+        {
+//            drupal_set_message($phpObj->query->results->Result->woeid);
+//            $objNode->field_woeid[LANGUAGE_NONE][0]['value'] = $phpObj->query->results->Result->woeid;
+        }
+    }
 }
 
 ?>
