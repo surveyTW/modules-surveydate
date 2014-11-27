@@ -44,10 +44,24 @@ function surveydate_menu(){
  * This function is called the "form builder". It builds the form.
  * Notice, it takes one argument, the $form_state
  */
-function surveydate_form($form_state) {
+function surveydate_form($form, &$form_state) {
+
   global $user;
 
   $form = array();
+
+  $form['survey_path'] = array(
+    '#type' => 'hidden',
+    '#value' => '',
+  );
+
+  // Display page 2 if $form_state['page_num'] == 2
+  if (!empty($form_state['my_var']['page_num']) && $form_state['my_var']['page_num'] == 2) {
+	  $form['survey_path']['#value'] = $form_state['my_var']['survey_path'];
+  }
+
+  // Otherwise we build page 1.
+  $form_state['my_var']['page_num'] = 1;
 
   $form['title'] = array(
     '#required' => '0',
@@ -124,11 +138,15 @@ function surveydate_form_validate($form, &$form_state) {
 // Adds a submit handler/function to our form to send a successful
 // completion message to the screen.
 function surveydate_form_submit($form, &$form_state) {
-    save_surveydate($form);
+    save_surveydate($form, $form_state);
     drupal_set_message(t('The form has been submitted.'));
+    $form_state['rebuild'] = TRUE;
+    $form_state['my_var']['page_num'] = 2;
+    
+    
 }
 
-function save_surveydate($form) {
+function save_surveydate($form, &$form_state) {
     global $user;
 
     $objNode = new stdClass();
@@ -205,7 +223,9 @@ function save_surveydate($form) {
       //phpmailer_send($message);
   //    drupal_set_message(t('phpmailer was disabled.'));
     }
-    drupal_goto($domain);
+    //drupal_goto($domain);
+   $form_state['my_var']['survey_path'] = $base_url.'/'.$domain;
+
 }
 
 /**
