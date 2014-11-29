@@ -389,7 +389,7 @@ function get_location_woeid($objNode, $form_location) {
         if (!is_null($phpObj->query->results))
         {
 //            drupal_set_message($phpObj->query->results->Result->woeid);
-//            $objNode->field_woeid[LANGUAGE_NONE][0]['value'] = $phpObj->query->results->Result->woeid;
+            $objNode->field_woeid[LANGUAGE_NONE][0]['value'] = $phpObj->query->results->Result->woeid;
         }
     }
 }
