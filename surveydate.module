@@ -304,7 +304,7 @@ function save_surveydate($form, &$form_state) {
     $subject = t('Dun test code'); // subject of e-mail
   //  $body = "Hi".$form['name']['#value']." You had created a activity survey form. The path is http://54.199.171.173/drupal".$domain; //it might be any variable from the form eg. $form_state['values']['your_field']
     $body=t("Hi @name.\n\nYou has created a new surveydate activity.\n\n E-mail sent from @site-name and survey path is @site-path.\n\n ",
-     array('@name' => $user->name,
+     array('@name' => $form['name']['#value'],
     	   '@site-name' => variable_get('site_name', 'Drupal'),
     	   '@site-path' => $base_url.'/'.$domain,// . '/' . drupal_get_path('module', 'custom')('site_path', 'Drupal'),
     	   )
@@ -438,7 +438,7 @@ function _update_surveydate_page() {
 
     $subject = t(''); // subject of e-mail
 //  $body = "Hi".$form['name']['#value']." You had created a activity survey form. The path is http://54.199.171.173/drupal".$domain; //it might be any variable from the form eg. $form_state['values']['your_field']
-    $body=t("Hi @name.\n\n @current-user has created a new surveydate form.\n\n E-mail sent from @site-name and survey path is @site-path.\n\n ",
+    $body=t("Hi @name.\n\n @current-user has updated your survey form.\n\n E-mail sent from @site-name and survey path is @site-path.\n\n ",
      array('@name' => $node->field_name[LANGUAGE_NONE][0]['value'],
     	   '@current-user'=>$ay[$curr_user]->name,
     	   '@site-name' => variable_get('site_name', 'Drupal'),
@@ -451,28 +451,7 @@ function _update_surveydate_page() {
      'subject' => $subject,
      'body' => array(token_replace($body, array('callback' => 'user_mail_tokens', 'sanitize' => FALSE)),),
      );
-//     dpm($params);
 
-
-	/*
-
-	if (phpmailer_enabled()) {
-      drupal_mail('surveydate', 'surveydate_save', $user_address, language_default(),$params);
-//      drupal_set_message(t('phpmailer was enabled.'));
-    }
-    // Otherwise, prepare and send the test mail manually.
-    else {
-      // Prepare the message without sending.
-      $message = drupal_mail('surveydate', 'surveydate_save', $user_address, NULL, $params, NULL, FALSE);
-      // Send the message. drupal_mail_wrapper() is only defined when PHPMailer
-      // is enabled, so drupal_mail_send() cannot be used.
-      // @see drupal_mail_send()
-      module_load_include('inc', 'phpmailer', 'includes/phpmailer.drupal');
-      phpmailer_send($message);
-  //    drupal_set_message(t('phpmailer was disabled.'));
-    }
-    
-  */  
     /*Dun Add for async mail*/
 
 
@@ -486,14 +465,11 @@ function _update_surveydate_page() {
 //	drupal_set_message($id);
 		//now call the URL for processing
 	$salt = drupal_get_hash_salt();
-	$key = 'dun'; //generate a random string
+	$key = $node->field_name[LANGUAGE_NONE][0]['value']; //generate a random string
 	$hash = hash('sha1', $salt . $key);
 	$url = url("send-sms/$key/$hash", array('absolute' => TRUE));
 	curl_request_async($url, array(), 'GET');
       
-
-
-
 
 }
 
