@@ -35,9 +35,121 @@ function surveydate_menu(){
     'access arguments' => array('access update surveydate content'),
     'type' => MENU_CALLBACK,
   );
-
+	
+	$items['send-sms/%/%']=array(
+	'title' => 'Send SMS From Queue',
+	'page callback' => 'mymodule_process_sms',
+	//since a logged in user will not be calling this, we need to ensure security so we have our own access call back instead of TRUE
+	'access callback' => 'mymodule_process_sms_access',
+	'access arguments' => array(1,2),
+	'type' => MENU_CALLBACK,
+	);
   return $items;
 }
+
+/*
+
+Send mail by asynchronious method by Dun
+
+*/
+function mymodule_process_sms() {
+
+	drupal_set_message('mymodule_SMS_active');
+	$queue = DrupalQueue::get('my_queue_name', TRUE);
+//	$queue->createQueue(); // There is no harm in trying to recreate existing.
+	
+	while ($item = $queue->claimItem()) {
+		
+		drupal_set_message('Process_sms_ID');
+		$user_address = $item->data['id'];
+		$params=$item->data['mail_body'];
+		//process based on the id
+	if (phpmailer_enabled()) {
+      drupal_mail('surveydate', 'surveydate_save', $user_address, language_default(),$params);
+//      drupal_set_message(t('phpmailer was enabled.'));
+    }
+    // Otherwise, prepare and send the test mail manually.
+    else {
+      // Prepare the message without sending.
+      $message = drupal_mail('surveydate', 'surveydate_save', $user_address, NULL, $params, NULL, FALSE);
+      // Send the message. drupal_mail_wrapper() is only defined when PHPMailer
+      // is enabled, so drupal_mail_send() cannot be used.
+      // @see drupal_mail_send()
+      module_load_include('inc', 'phpmailer', 'includes/phpmailer.drupal');
+      phpmailer_send($message);
+  //    drupal_set_message(t('phpmailer was disabled.'));
+		}
+		//drupal_set_message('Process_sms_ID');
+//		drupal_set_message($id);	
+
+		//delete this item from the queue
+		$queue->deleteItem($item);
+		}
+}
+
+/*
+Let's add security to our call
+
+
+*/
+function mymodule_process_sms_access($key, $token) {
+
+		/*drupal_set_message('Check permission');
+		drupal_set_message('$key=');
+		dpm($key);
+		drupal_set_message('$token=');
+		dpm($token);*/
+		//get hash salt for the site which is unique for each site
+		$salt = drupal_get_hash_salt();
+		//concat the random string and the salt and fetch a hashed value
+		$hash = hash('sha1', $salt . $key);
+		//check if the hash value and token match
+		
+return $hash===$token;
+}
+
+/*
+Now for the async request from the above link, enhanced for ssl
+
+*/
+function curl_request_async($url, $params, $type = 'POST') {
+
+		foreach ($params as $key => &$val) {
+			if (is_array($val))
+			$val = implode(',', $val);
+			$post_params[] = $key . '=' . urlencode($val);
+		}
+			$post_string = implode('&', $post_params);
+			$parts = parse_url($url);
+
+		if($parts['scheme'] == 'https') {
+			$host = 'ssl://' . $parts['host'];
+			$port = isset($parts['port']) ? $parts['port'] : 443;
+		}
+		else {
+			$host = $parts['host'];
+			$port = isset($parts['port']) ? $parts['port'] : 80;
+			}
+		$fp = fsockopen($host, $port, $errno, $errstr, 30);
+
+		// Data goes in the path for a GET request
+		if ('GET' == $type) {
+			$parts['path'] .= '?' . $post_string;
+		}
+		$out = "$type " . $parts['path'] . " HTTP/1.1\r\n";
+		$out.= "Host: " . $parts['host'] . "\r\n";
+		$out.= "Content-Type: application/x-www-form-urlencoded\r\n";
+		$out.= "Content-Length: " . strlen($post_string) . "\r\n";
+		$out.= "Connection: Close\r\n\r\n";
+		// Data goes in the request body for a POST request
+		if ('POST' == $type && isset($post_string)) {
+			$out.= $post_string;
+		}
+		fwrite($fp, $out);
+		fclose($fp);
+
+}
+
 
 
 /**
@@ -342,6 +454,8 @@ function _update_surveydate_page() {
 //     dpm($params);
 
 
+	/*
+
 	if (phpmailer_enabled()) {
       drupal_mail('surveydate', 'surveydate_save', $user_address, language_default(),$params);
 //      drupal_set_message(t('phpmailer was enabled.'));
@@ -357,6 +471,30 @@ function _update_surveydate_page() {
       phpmailer_send($message);
   //    drupal_set_message(t('phpmailer was disabled.'));
     }
+    
+  */  
+    /*Dun Add for async mail*/
+
+
+	$queue = DrupalQueue::get('my_queue_name');
+	$queue->createQueue();
+	$queue->createItem(array('id' => $user_address, 'mail_body'=>$params));
+//	$items=$queue->claimItem();
+//	dpm($items);
+//	$id = $items->data['id'];
+//	drupal_set_message('id=');
+//	drupal_set_message($id);
+		//now call the URL for processing
+	$salt = drupal_get_hash_salt();
+	$key = 'dun'; //generate a random string
+	$hash = hash('sha1', $salt . $key);
+	$url = url("send-sms/$key/$hash", array('absolute' => TRUE));
+	curl_request_async($url, array(), 'GET');
+      
+
+
+
+
 }
 
 function get_location_woeid($objNode, $form_location) {
