@@ -181,7 +181,7 @@ function surveydate_form($form, &$form_state) {
     '#size' => 60,
     '#maxlength' => 255,
     '#type' => 'textfield',
-    '#title' => t('Title'),
+    '#title' => t('聚會名稱'),
   );
 
   $form['description'] = array(
@@ -191,7 +191,7 @@ function surveydate_form($form, &$form_state) {
     '#cols' => 60,
     '#wysiwyg' => false,
     '#type' => 'textarea',
-    '#title' => t('Description'),
+    '#title' => t('描述'),
   );
 
   $form['name'] = array(
@@ -220,7 +220,7 @@ function surveydate_form($form, &$form_state) {
     '#size' => 60,
     '#maxlength' => 255,
     '#type' => 'textfield',
-    '#title' => t('Location'),
+    '#title' => t('地點'),
   );
 
   $form['date'] = array(
