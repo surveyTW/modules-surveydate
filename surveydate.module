@@ -54,13 +54,13 @@ Send mail by asynchronious method by Dun
 */
 function mymodule_process_sms() {
 
-	drupal_set_message('mymodule_SMS_active');
+//	drupal_set_message('mymodule_SMS_active');
 	$queue = DrupalQueue::get('my_queue_name', TRUE);
 //	$queue->createQueue(); // There is no harm in trying to recreate existing.
 	
 	while ($item = $queue->claimItem()) {
 		
-		drupal_set_message('Process_sms_ID');
+//		drupal_set_message('Process_sms_ID');
 		$user_address = $item->data['id'];
 		$params=$item->data['mail_body'];
 		//process based on the id
@@ -251,7 +251,7 @@ function surveydate_form_validate($form, &$form_state) {
 // completion message to the screen.
 function surveydate_form_submit($form, &$form_state) {
     save_surveydate($form, $form_state);
-    drupal_set_message(t('The form has been submitted.'));
+ //   drupal_set_message(t('The form has been submitted.'));
     $form_state['rebuild'] = TRUE;
     $form_state['my_var']['page_num'] = 2;
     
@@ -317,9 +317,9 @@ function save_surveydate($form, &$form_state) {
     );
 
    $user_address=$form['email']['#value'];
-   drupal_set_message($user_address);
+//   drupal_set_message($user_address);
    $sitemail=variable_get('site_mail','drupal');
-   drupal_set_message($sitemail);
+//   drupal_set_message($sitemail);
 	if (phpmailer_enabled()) {
       drupal_mail('surveydate', 'surveydate_submit', $user_address, language_default(),$params,$sitemail,TRUE);
 //      drupal_set_message(t('phpmailer was enabled.'));
