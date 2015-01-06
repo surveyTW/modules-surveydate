@@ -395,34 +395,55 @@ function surveydate_mail($key, &$message, $params) {
 
 
 function _update_surveydate_page() {
-   $oMessage = new stdClass();
+	global $user;
+	$oMessage = new stdClass();
+	$added_data = 0;
 
-   $json = file_get_contents('php://input');
-   $obj  = json_decode($json);
+	$json = file_get_contents('php://input');
+	$obj  = json_decode($json);
 
-   $tmp = explode('/',drupal_get_normal_path($obj->path));
-   $nid = $tmp[1];
-   $node = node_load($nid);
+	$tmp = explode('/',drupal_get_normal_path($obj->path));
+	$nid = $tmp[1];
+	$node = node_load($nid);
 
-   if ( $node ) {
-      $data = $node->field_survey[LANGUAGE_NONE][0]['value'];
-      $ay = json_decode($data);
-      $ay[] = $obj->data;
-      foreach($ay as $key=>$row){
-	      foreach($row as $i=>$value){
-		      $ayResult[$i] += $value;
-	      }
-      }
-      $node->field_survey[LANGUAGE_NONE][0]['value'] = json_encode($ay);
-      $node->field_result[LANGUAGE_NONE][0]['value'] = json_encode($ayResult);
-      node_save($node);
+	if ( $node ) {
+		$data = $node->field_survey[LANGUAGE_NONE][0]['value'];
+		$ay = json_decode($data);
+		if(!strcmp($user->uid, '0')){
+			$ay[] = $obj->data;
+			$added_data = 1;
+		}
+		foreach($ay as $key=>$row){
+			if(strcmp($row->uid, '0') && !strcmp($row->uid, $user->uid)){
+				$row = $obj->data;
+				$ay[$key] = $obj->data;
+				$added_data = 1;
+			}
+			foreach($row as $i=>$value){
+				if(strcmp($i,'uid')){
+					$ayResult[$i] += $value;
+				}
+			}
+		}
+		if($added_data == 0){
+			$ay[] = $obj->data;
+			foreach(end($ay) as $i=>$value){
+				if(strcmp($i,'uid')){
+					//dvm($i);
+					$ayResult[$i] += $value;
+				}
+			}
+		}
+		$node->field_survey[LANGUAGE_NONE][0]['value'] = json_encode($ay);
+		$node->field_result[LANGUAGE_NONE][0]['value'] = json_encode($ayResult);
+		node_save($node);
 
-      $oMessage->code = 1;
-      $oMessage->message = 'OK';
-   } else {
-      $oMessage->code = 0;
-      $oMessage->message = 'ERROR';
-   }
+		$oMessage->code = 1;
+		$oMessage->message = 'OK';
+	} else {
+		$oMessage->code = 0;
+		$oMessage->message = 'ERROR';
+	}
 
    echo json_encode($oMessage);
 
