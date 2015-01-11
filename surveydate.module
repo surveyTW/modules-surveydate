@@ -63,20 +63,23 @@ function mymodule_process_sms() {
 //		drupal_set_message('Process_sms_ID');
 		$user_address = $item->data['id'];
 		$params=$item->data['mail_body'];
+		$status=$item->data['status'];
 		//process based on the id
-	if (phpmailer_enabled()) {
-      drupal_mail('surveydate', 'surveydate_save', $user_address, language_default(),$params);
+	if ($status=1)
+	{	
+		if (phpmailer_enabled()) {
+      	drupal_mail('surveydate', 'surveydate_save', $user_address, language_default(),$params);
 //      drupal_set_message(t('phpmailer was enabled.'));
-    }
-    // Otherwise, prepare and send the test mail manually.
-    else {
-      // Prepare the message without sending.
-      $message = drupal_mail('surveydate', 'surveydate_save', $user_address, NULL, $params, NULL, FALSE);
-      // Send the message. drupal_mail_wrapper() is only defined when PHPMailer
-      // is enabled, so drupal_mail_send() cannot be used.
-      // @see drupal_mail_send()
-      module_load_include('inc', 'phpmailer', 'includes/phpmailer.drupal');
-      phpmailer_send($message);
+    	}
+    	// Otherwise, prepare and send the test mail manually.
+    	else {
+      	// Prepare the message without sending.
+      	$message = drupal_mail('surveydate', 'surveydate_save', $user_address, NULL, $params, NULL, FALSE);
+      	// Send the message. drupal_mail_wrapper() is only defined when PHPMailer
+      	// is enabled, so drupal_mail_send() cannot be used.
+      	// @see drupal_mail_send()
+      	module_load_include('inc', 'phpmailer', 'includes/phpmailer.drupal');
+      	phpmailer_send($message);
   //    drupal_set_message(t('phpmailer was disabled.'));
 		}
 		//drupal_set_message('Process_sms_ID');
@@ -84,9 +87,29 @@ function mymodule_process_sms() {
 
 		//delete this item from the queue
 		$queue->deleteItem($item);
-		}
-}
+	}
+	else
+	{
+		if (phpmailer_enabled()) {
+      		drupal_mail('surveydate', 'surveydate_submit', $user_address, language_default(),$params);
+//      	drupal_set_message(t('phpmailer was enabled.'));
+    		}
+    	// Otherwise, prepare and send the test mail manually.
+    	else {
+     	 // Prepare the message without sending.
+      		$message = drupal_mail('surveydate', 'surveydate_submit', $user_address, NULL, $params, NULL, FALSE);
+      		//Send the message. drupal_mail_wrapper() is only defined when PHPMailer
+      		//is enabled, so drupal_mail_send() cannot be used.
+      		// @see drupal_mail_send()
+      		//module_load_include('inc', 'phpmailer', 'includes/phpmailer.drupal');
+      		//phpmailer_send($message);
+  			//drupal_set_message(t('phpmailer was disabled.'));
+    		}
+		$queue->deleteItem($item);
+	}	
+	}
 
+}
 /*
 Let's add security to our call
 
@@ -114,6 +137,7 @@ Now for the async request from the above link, enhanced for ssl
 */
 function curl_request_async($url, $params, $type = 'POST') {
 
+		$post_params=array();
 		foreach ($params as $key => &$val) {
 			if (is_array($val))
 			$val = implode(',', $val);
@@ -318,7 +342,9 @@ function save_surveydate($form, &$form_state) {
 
    $user_address=$form['email']['#value'];
 //   drupal_set_message($user_address);
+
    $sitemail=variable_get('site_mail','drupal');
+/*
 //   drupal_set_message($sitemail);
 	if (phpmailer_enabled()) {
       drupal_mail('surveydate', 'surveydate_submit', $user_address, language_default(),$params,$sitemail,TRUE);
@@ -336,6 +362,28 @@ function save_surveydate($form, &$form_state) {
   //    drupal_set_message(t('phpmailer was disabled.'));
     }
     //drupal_goto($domain);
+    
+    
+  */  
+    /*Dun Add for async mail*/
+    $status=0; //0 = submit; 1= save;
+	$queue = DrupalQueue::get('my_queue_name');
+	$queue->createQueue();
+	$queue->createItem(array('id' => $user_address, 'mail_body'=>$params, 'status'=>$status));
+//	$items=$queue->claimItem();
+//	dpm($items);
+//	$id = $items->data['id'];
+//	drupal_set_message('id=');
+//	drupal_set_message($id);
+		//now call the URL for processing
+	$salt = drupal_get_hash_salt();
+	$key = $form['name']['#value'];//$node->field_name[LANGUAGE_NONE][0]['value']; //generate a random string
+	$hash = hash('sha1', $salt . $key);
+	$url = url("send-sms/$key/$hash", array('absolute' => TRUE));
+	curl_request_async($url, array(), 'GET');
+     
+      
+    
    $form_state['my_var']['survey_path'] = $base_url.'/'.$domain;
 
 }
@@ -475,10 +523,11 @@ function _update_surveydate_page() {
 
     /*Dun Add for async mail*/
 
-
+    $status=1; //0 = submit; 1= save;
 	$queue = DrupalQueue::get('my_queue_name');
 	$queue->createQueue();
-	$queue->createItem(array('id' => $user_address, 'mail_body'=>$params));
+//	$queue->createItem(array('id' => $user_address, 'mail_body'=>$params));
+	$queue->createItem(array('id' => $user_address, 'mail_body'=>$params, 'status'=>$status));
 //	$items=$queue->claimItem();
 //	dpm($items);
 //	$id = $items->data['id'];
