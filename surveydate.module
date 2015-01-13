@@ -486,8 +486,37 @@ function _update_surveydate_page() {
 		$node->field_result[LANGUAGE_NONE][0]['value'] = json_encode($ayResult);
 		node_save($node);
 
+		$query = db_select('{node}', 'node');
+		$query->fields('node', array('nid'));
+		$query->leftJoin('{field_data_field_nid}', 'field_data_field_nid', 'node.nid = field_data_field_nid.entity_id AND (field_data_field_nid.entity_type = \'node\' AND field_data_field_nid.deleted = \'0\')');
+		$query->condition('node.status', 0);
+		$query->condition('node.type', array(edited_survey), 'IN');
+		$query->condition('field_data_field_nid.field_nid_value', $nid);
+		$result = $query->execute();
+		foreach ($result as $i => $row) {
+			node_delete($row->nid);
+		}
+
 		$oMessage->code = 1;
 		$oMessage->message = 'OK';
+
+		$objNode = new stdClass();
+		$objNode->title = $form['title']['#value'];
+		$objNode->type = 'edited_survey';
+
+		node_object_prepare($objNode); // Sets some defaults. Invokes hook_prepare() and hook_node_prepare().
+
+		$objNode->uid = $user->uid;
+
+		$objNode->language = LANGUAGE_NONE; // Or e.g. 'en' if locale is enabled
+		$objNode->status = 0; //(1 or 0): published or not
+		$objNode->promote = 0; //(1 or 0): promoted to front page
+		$objNode->comment = 0; // 0 = comments disabled, 1 = read only, 2 = read/write
+		$objNode->field_nid[LANGUAGE_NONE][0]['value']      = $nid;
+
+		$objNode = node_submit($objNode); // Prepare node for saving
+		node_save($objNode);
+
 	} else {
 		$oMessage->code = 0;
 		$oMessage->message = 'ERROR';
