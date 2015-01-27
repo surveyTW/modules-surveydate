@@ -206,8 +206,6 @@ function surveydate_form($form, &$form_state) {
     '#maxlength' => 255,
     '#type' => 'textfield',
     '#attributes' => array(
-	    'class' => array('form-control'
-	    ),
 	    'placeholder' => t('聚會主題'),
     ),
   );
@@ -219,10 +217,6 @@ function surveydate_form($form, &$form_state) {
     '#cols' => 60,
     '#wysiwyg' => false,
     '#type' => 'textarea',
-    '#attributes' => array(
-	    'class' => array('form-control'
-	    ),
-    ),
   );
 
   $form['name'] = array(
@@ -232,10 +226,6 @@ function surveydate_form($form, &$form_state) {
     '#maxlength' => 255,
     '#default_value' => $user->name,
     '#type' => 'textfield',
-    '#attributes' => array(
-	    'class' => array('form-control'
-	    ),
-    ),
   );
 
   $form['email'] = array(
@@ -245,10 +235,6 @@ function surveydate_form($form, &$form_state) {
     '#maxlength' => 255,
     '#default_value' => $user->mail,
     '#type' => 'textfield',
-    '#attributes' => array(
-	    'class' => array('form-control'
-	    ),
-    ),
   );
 
   $form['location'] = array(
@@ -257,7 +243,6 @@ function surveydate_form($form, &$form_state) {
     '#size' => 60,
     '#maxlength' => 255,
     '#type' => 'textfield',
-    '#title' => t('地點'),
   );
 
   $form['date'] = array(
@@ -271,6 +256,10 @@ function surveydate_form($form, &$form_state) {
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => 'Submit',
+    '#attributes' => array(
+	    'class' => array('btn btn-danger'
+	    ),
+    ),
   );
 
   return $form;
