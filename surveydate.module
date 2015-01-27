@@ -205,17 +205,24 @@ function surveydate_form($form, &$form_state) {
     '#size' => 60,
     '#maxlength' => 255,
     '#type' => 'textfield',
-    '#title' => t('聚會名稱'),
+    '#attributes' => array(
+	    'class' => array('form-control'
+	    ),
+	    'placeholder' => t('聚會主題'),
+    ),
   );
 
   $form['description'] = array(
     '#required' => '0',
     '#weight' => '0',
-    '#rows' => 5,
+    '#rows' => 11,
     '#cols' => 60,
     '#wysiwyg' => false,
     '#type' => 'textarea',
-    '#title' => t('描述'),
+    '#attributes' => array(
+	    'class' => array('form-control'
+	    ),
+    ),
   );
 
   $form['name'] = array(
@@ -225,7 +232,10 @@ function surveydate_form($form, &$form_state) {
     '#maxlength' => 255,
     '#default_value' => $user->name,
     '#type' => 'textfield',
-    '#title' => t('Name'),
+    '#attributes' => array(
+	    'class' => array('form-control'
+	    ),
+    ),
   );
 
   $form['email'] = array(
@@ -235,7 +245,10 @@ function surveydate_form($form, &$form_state) {
     '#maxlength' => 255,
     '#default_value' => $user->mail,
     '#type' => 'textfield',
-    '#title' => t('E-Mail'),
+    '#attributes' => array(
+	    'class' => array('form-control'
+	    ),
+    ),
   );
 
   $form['location'] = array(
