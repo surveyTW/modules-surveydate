@@ -310,14 +310,6 @@ function surveydate_form($form, &$form_state) {
     '#value' => '',
   );
 
-  // Display page 2 if $form_state['page_num'] == 2
-  if (!empty($form_state['my_var']['page_num']) && $form_state['my_var']['page_num'] == 2) {
-    $form['survey_path']['#value'] = $form_state['my_var']['survey_path'];
-  }
-
-  // Otherwise we build page 1.
-  $form_state['my_var']['page_num'] = 1;
-
   $form['title'] = array(
     '#required' => '0',
     '#weight' => '0',
@@ -372,6 +364,14 @@ function surveydate_form($form, &$form_state) {
     '#type' => 'textfield',
   );
 
+  $form['latlng'] = array(
+    '#type' => 'hidden',
+  );
+
+//  $form['woeid'] = array(
+//    '#type' => 'hidden',
+//  );
+
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => 'Submit',
@@ -380,6 +380,14 @@ function surveydate_form($form, &$form_state) {
       ),
     ),
   );
+
+  // Display page 2 if $form_state['page_num'] == 2
+  if (!empty($form_state['my_var']['page_num']) && $form_state['my_var']['page_num'] == 2) {
+    $form['survey_path']['#value'] = $form_state['my_var']['survey_path'];
+  }
+
+  // Otherwise we build page 1.
+  $form_state['my_var']['page_num'] = 1;
 
   return $form;
 }
@@ -420,7 +428,8 @@ function save_surveydate($form, &$form_state) {
   $objNode->field_name[LANGUAGE_NONE][0]['value'] = $form['name']['#value'];
   $objNode->field_email[LANGUAGE_NONE][0]['value'] = $form['email']['#value'];
   $objNode->field_location[LANGUAGE_NONE][0]['value'] = $form['location']['#value'];
-  get_location_woeid($objNode, $form['location']['#value']);
+  $objNode->field_latlng[LANGUAGE_NONE][0]['value'] = $form['latlng']['#value'];
+//  $objNode->field_woeid[LANGUAGE_NONE][0]['value'] = $form['woeid']['#value'];
   $objNode->field_date[LANGUAGE_NONE][0]['value'] = $form['date']['#value'];
   $objNode->field_survey[LANGUAGE_NONE][0]['value'] = '';
   $objNode->field_result[LANGUAGE_NONE][0]['value'] = '';
@@ -681,6 +690,7 @@ function _update_surveydate_page() {
   curl_request_async($url, array(), 'GET');
 }
 
+/*
 function get_location_woeid($objNode, $form_location) {
   // Get latitude & longitude from google
   $address = urlencode($form_location);
@@ -714,3 +724,4 @@ function get_location_woeid($objNode, $form_location) {
     }
   }
 }
+*/
