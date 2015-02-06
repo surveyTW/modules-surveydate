@@ -14,110 +14,101 @@ function surveydate_permission() {
   );
 }
 
-
 /**
  * Implements hook_menu().
  */
-function surveydate_menu(){
+function surveydate_menu() {
   $items = array();
   $items['surveydate'] = array(
     'title' => t('Survey Date'),
-    'page callback'    => 'drupal_get_form',
-    'page arguments'   => array('surveydate_form'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('surveydate_form'),
     'access arguments' => array('access surveydate content'),
     'description' => t('Survey Date'),
     'type' => MENU_NORMAL_ITEM,
   );
- 	$items['contactus'] = array(
+  $items['contactus'] = array(
     'title' => t('Contact us'),
-    'page callback'    => 'drupal_get_form',
-    'page arguments'   => array('contactus_form'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('contactus_form'),
     'access arguments' => array('access content'),
     'description' => t('Contact us'),
     'type' => MENU_NORMAL_ITEM,
-  );	
+  );
   $items['update_surveydate'] = array(
     'title' => 'Update Survey Date',
     'page callback' => '_update_surveydate_page',
     'access arguments' => array('access update surveydate content'),
     'type' => MENU_CALLBACK,
   );
-	
-	$items['send-sms/%/%']=array(
-	'title' => 'Send SMS From Queue',
-	'page callback' => 'mymodule_process_sms',
-	//since a logged in user will not be calling this, we need to ensure security so we have our own access call back instead of TRUE
-	'access callback' => 'mymodule_process_sms_access',
-	'access arguments' => array(1,2),
-	'type' => MENU_CALLBACK,
-	);
+
+  $items['send-sms/%/%'] = array(
+    'title' => 'Send SMS From Queue',
+    'page callback' => 'mymodule_process_sms',
+    //since a logged in user will not be calling this, we need to ensure security so we have our own access call back instead of TRUE
+    'access callback' => 'mymodule_process_sms_access',
+    'access arguments' => array(1, 2),
+    'type' => MENU_CALLBACK,
+  );
   return $items;
 }
 
 // Adds a submit handler/function to our form to send a successful
 // completion message to the screen.
 function contactus_form_submit($form, &$form_state) {
-    submit_contactus($form, $form_state);
+  submit_contactus($form, $form_state);
 //    drupal_set_message(t('The contact us form has been submitted.'));
-    $form_state['rebuild'] = TRUE;
+  $form_state['rebuild'] = TRUE;
 //    $form_state['my_var']['page_num'] = 2;
-    
-    
 }
-function submit_contactus($form, &$form_state) {
-    global $user;
 
-    //Dun test mail code
-    global $base_url;
+function submit_contactus($form, &$form_state) {
+  global $user;
+
+  //Dun test mail code
+  global $base_url;
 
 //	drupal_set_message('submit_contact us');
-    $subject = t('Feedback from contact us form'); // subject of e-mail
+  $subject = t('Feedback from contact us form'); // subject of e-mail
   //  $body = "Hi".$form['name']['#value']." You had created a activity survey form. The path is http://54.199.171.173/drupal".$domain; //it might be any variable from the form eg. $form_state['values']['your_field']
-    $body=t(" @name.\n\n feedback message .\n\n @description.\n\n Customer e-mail: @email ",
-     array('@name' => $form['name']['#value'],
-    	   '@description' => $form['description']['#value'],
-    	   '@email' => $form['email']['#value'],
-    	   )
-     );
+  $body = t(" @name.\n\n feedback message .\n\n @description.\n\n Customer e-mail: @email ", array('@name' => $form['name']['#value'],
+    '@description' => $form['description']['#value'],
+    '@email' => $form['email']['#value'],
+          )
+  );
 
-    $params = array(
-     'subject' => $subject,
-     'body' => array(token_replace($body, array('callback' => 'user_mail_tokens', 'sanitize' => FALSE)),),
-    );
+  $params = array(
+    'subject' => $subject,
+    'body' => array(token_replace($body, array('callback' => 'user_mail_tokens', 'sanitize' => FALSE)),),
+  );
 
-   $user_address=$form['email']['#value'];
+  $user_address = $form['email']['#value'];
 
+  $sitemail = variable_get('site_mail', 'drupal');
 
-   $sitemail=variable_get('site_mail','drupal');
-
-    
-    
-    /*Dun Add for async mail*/
-    $status=2; //0 = submit; 1= save; 2=contact us form
-	$queue = DrupalQueue::get('my_queue_name');
-	$queue->createQueue();
-	$queue->createItem(array('id' => $sitemail, 'mail_body'=>$params, 'status'=>$status));
+  /* Dun Add for async mail */
+  $status = 2; //0 = submit; 1= save; 2=contact us form
+  $queue = DrupalQueue::get('my_queue_name');
+  $queue->createQueue();
+  $queue->createItem(array('id' => $sitemail, 'mail_body' => $params, 'status' => $status));
 //	$items=$queue->claimItem();
 //	dpm($items);
 //	$id = $items->data['id'];
 //	drupal_set_message('id=');
 //	drupal_set_message($id);
-		//now call the URL for processing
-	$salt = drupal_get_hash_salt();
-	$key = $form['name']['#value'];//$node->field_name[LANGUAGE_NONE][0]['value']; //generate a random string
-	$hash = hash('sha1', $salt . $key);
-	$url = url("send-sms/$key/$hash", array('absolute' => TRUE));
-	curl_request_async($url, array(), 'GET');
-
+  //now call the URL for processing
+  $salt = drupal_get_hash_salt();
+  $key = $form['name']['#value']; //$node->field_name[LANGUAGE_NONE][0]['value']; //generate a random string
+  $hash = hash('sha1', $salt . $key);
+  $url = url("send-sms/$key/$hash", array('absolute' => TRUE));
+  curl_request_async($url, array(), 'GET');
 }
 
 /**
  * This function is called the "form builder". It builds the form.
  * Notice, it takes one argument, the $form_state
  */
- 
 function contactus_form($form, &$form_state) {
-
   global $user;
 
   $form = array();
@@ -127,17 +118,13 @@ function contactus_form($form, &$form_state) {
     '#value' => '',
   );
 
-
-if (!empty($user->name))
-{
-	$user_name=$user->name;
-	$user_mail=$user->mail;
-}
-else
-{
-	$user_name=t('Please input your name');
-	$user_mail=t('Please input your E-mail');
-}
+  if (!empty($user->name)) {
+    $user_name = $user->name;
+    $user_mail = $user->mail;
+  } else {
+    $user_name = t('Please input your name');
+    $user_mail = t('Please input your E-mail');
+  }
 
   $form['description'] = array(
     '#required' => '0',
@@ -165,176 +152,155 @@ else
     '#default_value' => $user_mail,
     '#type' => 'textfield',
   );
+
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => 'Submit',
     '#attributes' => array(
-	    'class' => array('btn btn-danger'
-	    ),
+      'class' => array('btn btn-danger'
+      ),
     ),
   );
 
   return $form;
 }
 
-
-
-
 /*
-
-Send mail by asynchronious method by Dun
-
-*/
+  Send mail by asynchronious method by Dun
+ */
 function mymodule_process_sms() {
-
 //	drupal_set_message('mymodule_SMS_active');
-	$queue = DrupalQueue::get('my_queue_name', TRUE);
+  $queue = DrupalQueue::get('my_queue_name', TRUE);
 //	$queue->createQueue(); // There is no harm in trying to recreate existing.
-	
-	while ($item = $queue->claimItem()) {
-		
+
+  while ($item = $queue->claimItem())
+  {
 //		drupal_set_message('Process_sms_ID');
-		$user_address = $item->data['id'];
-		$params=$item->data['mail_body'];
-		$status=$item->data['status'];
-		//process based on the id
-	if ($status==1)
-	{	
-		if (phpmailer_enabled()) {
-      	drupal_mail('surveydate', 'surveydate_save', $user_address, language_default(),$params);
+    $user_address = $item->data['id'];
+    $params = $item->data['mail_body'];
+    $status = $item->data['status'];
+    //process based on the id
+    if ($status == 1) {
+      if (phpmailer_enabled()) {
+        drupal_mail('surveydate', 'surveydate_save', $user_address, language_default(), $params);
 //      drupal_set_message(t('phpmailer was enabled.'));
-    	}
-    	// Otherwise, prepare and send the test mail manually.
-    	else {
-      	// Prepare the message without sending.
-      	$message = drupal_mail('surveydate', 'surveydate_save', $user_address, NULL, $params, NULL, FALSE);
-      	// Send the message. drupal_mail_wrapper() is only defined when PHPMailer
-      	// is enabled, so drupal_mail_send() cannot be used.
-      	// @see drupal_mail_send()
-      	module_load_include('inc', 'phpmailer', 'includes/phpmailer.drupal');
-      	phpmailer_send($message);
-  //    drupal_set_message(t('phpmailer was disabled.'));
-		}
-		//drupal_set_message('Process_sms_ID');
-//		drupal_set_message($id);	
-
-		//delete this item from the queue
-		$queue->deleteItem($item);
-	}
-	else if ($status ==2)
-	{
-		if (phpmailer_enabled()) {
-      		drupal_mail('surveydate', 'surveydate_submit', $user_address, language_default(),$params);
+      }
+      // Otherwise, prepare and send the test mail manually.
+      else {
+        // Prepare the message without sending.
+        $message = drupal_mail('surveydate', 'surveydate_save', $user_address, NULL, $params, NULL, FALSE);
+        // Send the message. drupal_mail_wrapper() is only defined when PHPMailer
+        // is enabled, so drupal_mail_send() cannot be used.
+        // @see drupal_mail_send()
+        module_load_include('inc', 'phpmailer', 'includes/phpmailer.drupal');
+        phpmailer_send($message);
+        //    drupal_set_message(t('phpmailer was disabled.'));
+      }
+      //drupal_set_message('Process_sms_ID');
+//		drupal_set_message($id);
+      //delete this item from the queue
+      $queue->deleteItem($item);
+    } else if ($status == 2) {
+      if (phpmailer_enabled()) {
+        drupal_mail('surveydate', 'surveydate_submit', $user_address, language_default(), $params);
 //      	drupal_set_message(t('phpmailer was enabled.'));
-    		}
-    	// Otherwise, prepare and send the test mail manually.
-    	else {
-     	 // Prepare the message without sending.
-      		$message = drupal_mail('surveydate', 'surveydate_submit', $user_address, NULL, $params, NULL, FALSE);
-      		//Send the message. drupal_mail_wrapper() is only defined when PHPMailer
-      		//is enabled, so drupal_mail_send() cannot be used.
-      		// @see drupal_mail_send()
-      		//module_load_include('inc', 'phpmailer', 'includes/phpmailer.drupal');
-      		//phpmailer_send($message);
-  			//drupal_set_message(t('phpmailer was disabled.'));
-    		}
-		$queue->deleteItem($item);
-	}	
-	else
-	{
-		
-		if (phpmailer_enabled()) {
-      		drupal_mail('surveydate', 'contact_message', $user_address, language_default(),$params);
-//      	drupal_set_message(t('phpmailer was enabled.'));
-    		}
-    	// Otherwise, prepare and send the test mail manually.
-    	else {
-     	 // Prepare the message without sending.
-      		$message = drupal_mail('surveydate', 'contact_message', $user_address, NULL, $params, NULL, FALSE);
-      		//Send the message. drupal_mail_wrapper() is only defined when PHPMailer
-      		//is enabled, so drupal_mail_send() cannot be used.
-      		// @see drupal_mail_send()
-      		//module_load_include('inc', 'phpmailer', 'includes/phpmailer.drupal');
-      		//phpmailer_send($message);
-  			//drupal_set_message(t('phpmailer was disabled.'));
-    		}
-		$queue->deleteItem($item);
-	}
-	}
+      }
+      // Otherwise, prepare and send the test mail manually.
+      else {
+        // Prepare the message without sending.
+        $message = drupal_mail('surveydate', 'surveydate_submit', $user_address, NULL, $params, NULL, FALSE);
+        //Send the message. drupal_mail_wrapper() is only defined when PHPMailer
+        //is enabled, so drupal_mail_send() cannot be used.
+        // @see drupal_mail_send()
+        //module_load_include('inc', 'phpmailer', 'includes/phpmailer.drupal');
+        //phpmailer_send($message);
+        //drupal_set_message(t('phpmailer was disabled.'));
+      }
+      $queue->deleteItem($item);
+    } else {
 
+      if (phpmailer_enabled()) {
+        drupal_mail('surveydate', 'contact_message', $user_address, language_default(), $params);
+//      	drupal_set_message(t('phpmailer was enabled.'));
+      }
+      // Otherwise, prepare and send the test mail manually.
+      else {
+        // Prepare the message without sending.
+        $message = drupal_mail('surveydate', 'contact_message', $user_address, NULL, $params, NULL, FALSE);
+        //Send the message. drupal_mail_wrapper() is only defined when PHPMailer
+        //is enabled, so drupal_mail_send() cannot be used.
+        // @see drupal_mail_send()
+        //module_load_include('inc', 'phpmailer', 'includes/phpmailer.drupal');
+        //phpmailer_send($message);
+        //drupal_set_message(t('phpmailer was disabled.'));
+      }
+      $queue->deleteItem($item);
+    }
+  }
 }
+
 /*
-Let's add security to our call
-
-
-*/
+  Let's add security to our call
+ */
 function mymodule_process_sms_access($key, $token) {
+  /* drupal_set_message('Check permission');
+    drupal_set_message('$key=');
+    dpm($key);
+    drupal_set_message('$token=');
+    dpm($token); */
+  //get hash salt for the site which is unique for each site
+  $salt = drupal_get_hash_salt();
+  //concat the random string and the salt and fetch a hashed value
+  $hash = hash('sha1', $salt . $key);
+  //check if the hash value and token match
 
-		/*drupal_set_message('Check permission');
-		drupal_set_message('$key=');
-		dpm($key);
-		drupal_set_message('$token=');
-		dpm($token);*/
-		//get hash salt for the site which is unique for each site
-		$salt = drupal_get_hash_salt();
-		//concat the random string and the salt and fetch a hashed value
-		$hash = hash('sha1', $salt . $key);
-		//check if the hash value and token match
-		
-return $hash===$token;
+  return $hash === $token;
 }
 
 /*
-Now for the async request from the above link, enhanced for ssl
-
-*/
+  Now for the async request from the above link, enhanced for ssl
+ */
 function curl_request_async($url, $params, $type = 'POST') {
+  $post_params = array();
+  foreach ($params as $key => &$val) {
+    if (is_array($val))
+      $val = implode(',', $val);
+    $post_params[] = $key . '=' . urlencode($val);
+  }
+  $post_string = implode('&', $post_params);
+  $parts = parse_url($url);
 
-		$post_params=array();
-		foreach ($params as $key => &$val) {
-			if (is_array($val))
-			$val = implode(',', $val);
-			$post_params[] = $key . '=' . urlencode($val);
-		}
-			$post_string = implode('&', $post_params);
-			$parts = parse_url($url);
+  if ($parts['scheme'] == 'https') {
+    $host = 'ssl://' . $parts['host'];
+    $port = isset($parts['port']) ? $parts['port'] : 443;
+  } else {
+    $host = $parts['host'];
+    $port = isset($parts['port']) ? $parts['port'] : 80;
+  }
+  $fp = fsockopen($host, $port, $errno, $errstr, 30);
 
-		if($parts['scheme'] == 'https') {
-			$host = 'ssl://' . $parts['host'];
-			$port = isset($parts['port']) ? $parts['port'] : 443;
-		}
-		else {
-			$host = $parts['host'];
-			$port = isset($parts['port']) ? $parts['port'] : 80;
-			}
-		$fp = fsockopen($host, $port, $errno, $errstr, 30);
-
-		// Data goes in the path for a GET request
-		if ('GET' == $type) {
-			$parts['path'] .= '?' . $post_string;
-		}
-		$out = "$type " . $parts['path'] . " HTTP/1.1\r\n";
-		$out.= "Host: " . $parts['host'] . "\r\n";
-		$out.= "Content-Type: application/x-www-form-urlencoded\r\n";
-		$out.= "Content-Length: " . strlen($post_string) . "\r\n";
-		$out.= "Connection: Close\r\n\r\n";
-		// Data goes in the request body for a POST request
-		if ('POST' == $type && isset($post_string)) {
-			$out.= $post_string;
-		}
-		fwrite($fp, $out);
-		fclose($fp);
-
+  // Data goes in the path for a GET request
+  if ('GET' == $type) {
+    $parts['path'] .= '?' . $post_string;
+  }
+  $out = "$type " . $parts['path'] . " HTTP/1.1\r\n";
+  $out.= "Host: " . $parts['host'] . "\r\n";
+  $out.= "Content-Type: application/x-www-form-urlencoded\r\n";
+  $out.= "Content-Length: " . strlen($post_string) . "\r\n";
+  $out.= "Connection: Close\r\n\r\n";
+  // Data goes in the request body for a POST request
+  if ('POST' == $type && isset($post_string)) {
+    $out.= $post_string;
+  }
+  fwrite($fp, $out);
+  fclose($fp);
 }
-
-
 
 /**
  * This function is called the "form builder". It builds the form.
  * Notice, it takes one argument, the $form_state
  */
 function surveydate_form($form, &$form_state) {
-
   global $user;
 
   $form = array();
@@ -346,7 +312,7 @@ function surveydate_form($form, &$form_state) {
 
   // Display page 2 if $form_state['page_num'] == 2
   if (!empty($form_state['my_var']['page_num']) && $form_state['my_var']['page_num'] == 2) {
-	  $form['survey_path']['#value'] = $form_state['my_var']['survey_path'];
+    $form['survey_path']['#value'] = $form_state['my_var']['survey_path'];
   }
 
   // Otherwise we build page 1.
@@ -359,7 +325,7 @@ function surveydate_form($form, &$form_state) {
     '#maxlength' => 255,
     '#type' => 'textfield',
     '#attributes' => array(
-	    'placeholder' => t('聚會主題'),
+      'placeholder' => t('聚會主題'),
     ),
   );
 
@@ -410,8 +376,8 @@ function surveydate_form($form, &$form_state) {
     '#type' => 'submit',
     '#value' => 'Submit',
     '#attributes' => array(
-	    'class' => array('btn btn-danger'
-	    ),
+      'class' => array('btn btn-danger'
+      ),
     ),
   );
 
@@ -419,128 +385,119 @@ function surveydate_form($form, &$form_state) {
 }
 
 function surveydate_form_validate($form, &$form_state) {
-    /*$year_of_birth = $form_state['values']['year_of_birth'];
+  /* $year_of_birth = $form_state['values']['year_of_birth'];
     if ($year_of_birth && ($year_of_birth < 1900 || $year_of_birth > 2000)) {
-        form_set_error('year_of_birth', 'Enter a year between 1900 and 2000.');
-    }*/
+    form_set_error('year_of_birth', 'Enter a year between 1900 and 2000.');
+    } */
 }
-
 
 // Adds a submit handler/function to our form to send a successful
 // completion message to the screen.
 function surveydate_form_submit($form, &$form_state) {
-    save_surveydate($form, $form_state);
- //   drupal_set_message(t('The form has been submitted.'));
-    $form_state['rebuild'] = TRUE;
-    $form_state['my_var']['page_num'] = 2;
-    
-    
+  save_surveydate($form, $form_state);
+  //   drupal_set_message(t('The form has been submitted.'));
+  $form_state['rebuild'] = TRUE;
+  $form_state['my_var']['page_num'] = 2;
 }
 
 function save_surveydate($form, &$form_state) {
-    global $user;
+  global $user;
 
-    $objNode = new stdClass();
-    $objNode->title = $form['title']['#value'];
-    $objNode->type = 'surveydate';
+  $objNode = new stdClass();
+  $objNode->title = $form['title']['#value'];
+  $objNode->type = 'surveydate';
 
-    node_object_prepare($objNode); // Sets some defaults. Invokes hook_prepare() and hook_node_prepare().
+  node_object_prepare($objNode); // Sets some defaults. Invokes hook_prepare() and hook_node_prepare().
 
-    $objNode->uid = $user->uid;
+  $objNode->uid = $user->uid;
 
-    $objNode->language = LANGUAGE_NONE; // Or e.g. 'en' if locale is enabled
-    $objNode->status = 1; //(1 or 0): published or not
-    $objNode->promote = 0; //(1 or 0): promoted to front page
-    $objNode->comment = 2; // 0 = comments disabled, 1 = read only, 2 = read/write
+  $objNode->language = LANGUAGE_NONE; // Or e.g. 'en' if locale is enabled
+  $objNode->status = 1; //(1 or 0): published or not
+  $objNode->promote = 0; //(1 or 0): promoted to front page
+  $objNode->comment = 2; // 0 = comments disabled, 1 = read only, 2 = read/write
 
-    $objNode->field_description[LANGUAGE_NONE][0]['value'] = $form['description']['#value'];
-    $objNode->field_name[LANGUAGE_NONE][0]['value']        = $form['name']['#value'];
-    $objNode->field_email[LANGUAGE_NONE][0]['value']       = $form['email']['#value'];
-    $objNode->field_location[LANGUAGE_NONE][0]['value']    = $form['location']['#value'];
-    get_location_woeid($objNode, $form['location']['#value']);
-    $objNode->field_date[LANGUAGE_NONE][0]['value']        = $form['date']['#value'];
-    $objNode->field_survey[LANGUAGE_NONE][0]['value']      = '';
-    $objNode->field_result[LANGUAGE_NONE][0]['value']      = '';
+  $objNode->field_description[LANGUAGE_NONE][0]['value'] = $form['description']['#value'];
+  $objNode->field_name[LANGUAGE_NONE][0]['value'] = $form['name']['#value'];
+  $objNode->field_email[LANGUAGE_NONE][0]['value'] = $form['email']['#value'];
+  $objNode->field_location[LANGUAGE_NONE][0]['value'] = $form['location']['#value'];
+  get_location_woeid($objNode, $form['location']['#value']);
+  $objNode->field_date[LANGUAGE_NONE][0]['value'] = $form['date']['#value'];
+  $objNode->field_survey[LANGUAGE_NONE][0]['value'] = '';
+  $objNode->field_result[LANGUAGE_NONE][0]['value'] = '';
 
-    $objNode = node_submit($objNode); // Prepare node for saving
-    node_save($objNode);
+  $objNode = node_submit($objNode); // Prepare node for saving
+  node_save($objNode);
 
-    // Create a path alias for the node.
-    $domain = md5($user->name . time());
+  // Create a path alias for the node.
+  $domain = md5($user->name . time());
 
-    $path['alias'] = $domain;
-    $path['source'] = 'node/' . $objNode->nid;
-    $path['language'] = LANGUAGE_NONE;
-    path_save($path);
+  $path['alias'] = $domain;
+  $path['source'] = 'node/' . $objNode->nid;
+  $path['language'] = LANGUAGE_NONE;
+  path_save($path);
 
+  //Dun test mail code
+  global $base_url;
 
-    //Dun test mail code
-    global $base_url;
+  //drupal_set_message($path['source']);
+  //drupal_set_message($base_url);
 
-    //drupal_set_message($path['source']);
-    //drupal_set_message($base_url);
-
-    $subject = t('Dun test code'); // subject of e-mail
+  $subject = t('Dun test code'); // subject of e-mail
   //  $body = "Hi".$form['name']['#value']." You had created a activity survey form. The path is http://54.199.171.173/drupal".$domain; //it might be any variable from the form eg. $form_state['values']['your_field']
-    $body=t("Hi @name.\n\nYou has created a new surveydate activity.\n\n E-mail sent from @site-name and survey path is @site-path.\n\n ",
-     array('@name' => $form['name']['#value'],
-    	   '@site-name' => variable_get('site_name', 'Drupal'),
-    	   '@site-path' => $base_url.'/'.$domain,// . '/' . drupal_get_path('module', 'custom')('site_path', 'Drupal'),
-    	   )
-     );
- //echo $base_url . '/' . drupal_get_path('module', 'custom') .
+  $body = t("Hi @name.\n\nYou has created a new surveydate activity.\n\n E-mail sent from @site-name and survey path is @site-path.\n\n ", array('@name' => $form['name']['#value'],
+    '@site-name' => variable_get('site_name', 'Drupal'),
+    '@site-path' => $base_url . '/' . $domain, // . '/' . drupal_get_path('module', 'custom')('site_path', 'Drupal'),
+          )
+  );
+  //echo $base_url . '/' . drupal_get_path('module', 'custom') .
 //params is the array passed to hook_mail function
-    $params = array(
-     'subject' => $subject,
-     'body' => array(token_replace($body, array('callback' => 'user_mail_tokens', 'sanitize' => FALSE)),),
-    );
+  $params = array(
+    'subject' => $subject,
+    'body' => array(token_replace($body, array('callback' => 'user_mail_tokens', 'sanitize' => FALSE)),),
+  );
 
-   $user_address=$form['email']['#value'];
+  $user_address = $form['email']['#value'];
 //   drupal_set_message($user_address);
 
-   $sitemail=variable_get('site_mail','drupal');
-/*
-//   drupal_set_message($sitemail);
-	if (phpmailer_enabled()) {
-      drupal_mail('surveydate', 'surveydate_submit', $user_address, language_default(),$params,$sitemail,TRUE);
-//      drupal_set_message(t('phpmailer was enabled.'));
+  $sitemail = variable_get('site_mail', 'drupal');
+  /*
+    //   drupal_set_message($sitemail);
+    if (phpmailer_enabled()) {
+    drupal_mail('surveydate', 'surveydate_submit', $user_address, language_default(),$params,$sitemail,TRUE);
+    //      drupal_set_message(t('phpmailer was enabled.'));
     }
     // Otherwise, prepare and send the test mail manually.
     else {
-      // Prepare the message without sending.
-      $message = drupal_mail('surveydate', 'surveydate_submit', $user_address, NULL, $params, NULL, FALSE);
-      // Send the message. drupal_mail_wrapper() is only defined when PHPMailer
-      // is enabled, so drupal_mail_send() cannot be used.
-      // @see drupal_mail_send()
-      //module_load_include('inc', 'phpmailer', 'includes/phpmailer.drupal');
-      //phpmailer_send($message);
-  //    drupal_set_message(t('phpmailer was disabled.'));
+    // Prepare the message without sending.
+    $message = drupal_mail('surveydate', 'surveydate_submit', $user_address, NULL, $params, NULL, FALSE);
+    // Send the message. drupal_mail_wrapper() is only defined when PHPMailer
+    // is enabled, so drupal_mail_send() cannot be used.
+    // @see drupal_mail_send()
+    //module_load_include('inc', 'phpmailer', 'includes/phpmailer.drupal');
+    //phpmailer_send($message);
+    //    drupal_set_message(t('phpmailer was disabled.'));
     }
     //drupal_goto($domain);
-    
-    
-  */  
-    /*Dun Add for async mail*/
-    $status=0; //0 = submit; 1= save;
-	$queue = DrupalQueue::get('my_queue_name');
-	$queue->createQueue();
-	$queue->createItem(array('id' => $user_address, 'mail_body'=>$params, 'status'=>$status));
+  */
+
+  /* Dun Add for async mail */
+  $status = 0; //0 = submit; 1= save;
+  $queue = DrupalQueue::get('my_queue_name');
+  $queue->createQueue();
+  $queue->createItem(array('id' => $user_address, 'mail_body' => $params, 'status' => $status));
 //	$items=$queue->claimItem();
 //	dpm($items);
 //	$id = $items->data['id'];
 //	drupal_set_message('id=');
 //	drupal_set_message($id);
-		//now call the URL for processing
-	$salt = drupal_get_hash_salt();
-	$key = $form['name']['#value'];//$node->field_name[LANGUAGE_NONE][0]['value']; //generate a random string
-	$hash = hash('sha1', $salt . $key);
-	$url = url("send-sms/$key/$hash", array('absolute' => TRUE));
-	curl_request_async($url, array(), 'GET');
-     
-      
-    
-   $form_state['my_var']['survey_path'] = $base_url.'/'.$domain;
+  //now call the URL for processing
+  $salt = drupal_get_hash_salt();
+  $key = $form['name']['#value']; //$node->field_name[LANGUAGE_NONE][0]['value']; //generate a random string
+  $hash = hash('sha1', $salt . $key);
+  $url = url("send-sms/$key/$hash", array('absolute' => TRUE));
+  curl_request_async($url, array(), 'GET');
 
+  $form_state['my_var']['survey_path'] = $base_url . '/' . $domain;
 }
 
 /**
@@ -557,7 +514,8 @@ function surveydate_mail($key, &$message, $params) {
     'langcode' => $message['language']->language,
   );
 
-  switch ($key) {
+  switch ($key)
+  {
     // Send a simple message from the contact form.
     case 'contact_message':
 //     drupal_set_message(t('Case= contact_message'));
@@ -570,199 +528,189 @@ function surveydate_mail($key, &$message, $params) {
       // as the body will later be transformed from HTML to text, meaning
       // that a normal use of '<' will result in truncation of the message.
       $message['body'][] = check_plain($params['message']);
-    
+
       break;
-      
-      case 'surveydate_submit':
-     // drupal_set_message(t('Case= Surveydate_submit'));
-	  $message['subject'] = t('E-mail sent from @site-name', array('@site-name' => variable_get('site_name', 'Drupal')), $options);
+
+    case 'surveydate_submit':
+      // drupal_set_message(t('Case= Surveydate_submit'));
+      $message['subject'] = t('E-mail sent from @site-name', array('@site-name' => variable_get('site_name', 'Drupal')), $options);
       // Note that the message body is an array, not a string.
 
-	  $message['body'] = $params['body'];
+      $message['body'] = $params['body'];
       //$message['body'][] = t('@name sent you the following message:', array('@name' => $user->name), $options);
       //$message['body'][] = check_plain($params['message']);
-   //   drupal_set_message($params['body']);
+      //   drupal_set_message($params['body']);
 
-	  break;
+      break;
 
-	  case 'surveydate_save':
-     // drupal_set_message(t('Case= Surveydate_submit'));
-	  $message['subject'] = t('E-mail sent from @site-name', array('@site-name' => variable_get('site_name', 'Drupal')), $options);
+    case 'surveydate_save':
+      // drupal_set_message(t('Case= Surveydate_submit'));
+      $message['subject'] = t('E-mail sent from @site-name', array('@site-name' => variable_get('site_name', 'Drupal')), $options);
       // Note that the message body is an array, not a string.
 
-	  $message['body'] = $params['body'];
+      $message['body'] = $params['body'];
       //$message['body'][] = t('@name sent you the following message:', array('@name' => $user->name), $options);
       //$message['body'][] = check_plain($params['message']);
-   //   drupal_set_message($params['body']);
+      //   drupal_set_message($params['body']);
 
-	  break;
+      break;
   }
 }
 
-
 function _update_surveydate_page() {
-	global $user;
-	$oMessage = new stdClass();
-	$added_data = 0;
+  global $user;
+  $oMessage = new stdClass();
+  $added_data = 0;
 
-	$json = file_get_contents('php://input');
-	$obj  = json_decode($json);
+  $json = file_get_contents('php://input');
+  $obj = json_decode($json);
 
-	$tmp = explode('/',drupal_get_normal_path($obj->path));
-	$nid = $tmp[1];
-	$node = node_load($nid);
+  $tmp = explode('/', drupal_get_normal_path($obj->path));
+  $nid = $tmp[1];
+  $node = node_load($nid);
 
-	if ( $node ) {
-		$data = $node->field_survey[LANGUAGE_NONE][0]['value'];
-		$ay = json_decode($data);
-		if(!strcmp($user->uid, '0')){
-			$ay[] = $obj->data;
-			$added_data = 1;
-		}
-		foreach($ay as $key=>$row){
-			if(strcmp($row->uid, '0') && !strcmp($row->uid, $user->uid)){
-				$row = $obj->data;
-				$ay[$key] = $obj->data;
-				$added_data = 1;
-			}
-			foreach($row as $i=>$value){
-				if(strcmp($i,'uid')){
-					$ayResult[$i] += $value;
-				}
-			}
-		}
-		if($added_data == 0){
-			$ay[] = $obj->data;
-			foreach(end($ay) as $i=>$value){
-				if(strcmp($i,'uid')){
-					//dvm($i);
-					$ayResult[$i] += $value;
-				}
-			}
-		}
-		$node->field_survey[LANGUAGE_NONE][0]['value'] = json_encode($ay);
-		$node->field_result[LANGUAGE_NONE][0]['value'] = json_encode($ayResult);
-		node_save($node);
+  if ($node) {
+    $data = $node->field_survey[LANGUAGE_NONE][0]['value'];
+    $ay = json_decode($data);
+    if (!strcmp($user->uid, '0')) {
+      $ay[] = $obj->data;
+      $added_data = 1;
+    }
+    foreach ($ay as $key => $row) {
+      if (strcmp($row->uid, '0') && !strcmp($row->uid, $user->uid)) {
+        $row = $obj->data;
+        $ay[$key] = $obj->data;
+        $added_data = 1;
+      }
+      foreach ($row as $i => $value) {
+        if (strcmp($i, 'uid')) {
+          $ayResult[$i] += $value;
+        }
+      }
+    }
+    if ($added_data == 0) {
+      $ay[] = $obj->data;
+      foreach (end($ay) as $i => $value) {
+        if (strcmp($i, 'uid')) {
+          //dvm($i);
+          $ayResult[$i] += $value;
+        }
+      }
+    }
+    $node->field_survey[LANGUAGE_NONE][0]['value'] = json_encode($ay);
+    $node->field_result[LANGUAGE_NONE][0]['value'] = json_encode($ayResult);
+    node_save($node);
 
-		$query = db_select('{node}', 'node');
-		$query->fields('node', array('nid'));
-		$query->leftJoin('{field_data_field_nid}', 'field_data_field_nid', 'node.nid = field_data_field_nid.entity_id AND (field_data_field_nid.entity_type = \'node\' AND field_data_field_nid.deleted = \'0\')');
-		$query->condition('node.status', 0);
-		$query->condition('node.type', array(edited_survey), 'IN');
-		$query->condition('field_data_field_nid.field_nid_value', $nid);
-		$result = $query->execute();
-		foreach ($result as $i => $row) {
-			node_delete($row->nid);
-		}
+    $query = db_select('{node}', 'node');
+    $query->fields('node', array('nid'));
+    $query->leftJoin('{field_data_field_nid}', 'field_data_field_nid', 'node.nid = field_data_field_nid.entity_id AND (field_data_field_nid.entity_type = \'node\' AND field_data_field_nid.deleted = \'0\')');
+    $query->condition('node.status', 0);
+    $query->condition('node.type', array(edited_survey), 'IN');
+    $query->condition('field_data_field_nid.field_nid_value', $nid);
+    $result = $query->execute();
+    foreach ($result as $i => $row) {
+      node_delete($row->nid);
+    }
 
-		$oMessage->code = 1;
-		$oMessage->message = 'OK';
+    $oMessage->code = 1;
+    $oMessage->message = 'OK';
 
-		$objNode = new stdClass();
-		$objNode->title = $form['title']['#value'];
-		$objNode->type = 'edited_survey';
+    $objNode = new stdClass();
+    $objNode->title = $form['title']['#value'];
+    $objNode->type = 'edited_survey';
 
-		node_object_prepare($objNode); // Sets some defaults. Invokes hook_prepare() and hook_node_prepare().
+    node_object_prepare($objNode); // Sets some defaults. Invokes hook_prepare() and hook_node_prepare().
 
-		$objNode->uid = $user->uid;
+    $objNode->uid = $user->uid;
 
-		$objNode->language = LANGUAGE_NONE; // Or e.g. 'en' if locale is enabled
-		$objNode->status = 0; //(1 or 0): published or not
-		$objNode->promote = 0; //(1 or 0): promoted to front page
-		$objNode->comment = 0; // 0 = comments disabled, 1 = read only, 2 = read/write
-		$objNode->field_nid[LANGUAGE_NONE][0]['value']      = $nid;
+    $objNode->language = LANGUAGE_NONE; // Or e.g. 'en' if locale is enabled
+    $objNode->status = 0; //(1 or 0): published or not
+    $objNode->promote = 0; //(1 or 0): promoted to front page
+    $objNode->comment = 0; // 0 = comments disabled, 1 = read only, 2 = read/write
+    $objNode->field_nid[LANGUAGE_NONE][0]['value'] = $nid;
 
-		$objNode = node_submit($objNode); // Prepare node for saving
-		node_save($objNode);
+    $objNode = node_submit($objNode); // Prepare node for saving
+    node_save($objNode);
+  } else {
+    $oMessage->code = 0;
+    $oMessage->message = 'ERROR';
+  }
 
-	} else {
-		$oMessage->code = 0;
-		$oMessage->message = 'ERROR';
-	}
+  echo json_encode($oMessage);
 
-   echo json_encode($oMessage);
+  global $base_url;
+  $user_address = $node->field_email[LANGUAGE_NONE][0]['value'];
 
+  $domain = $obj->path;
 
-   global $base_url;
-   $user_address=$node->field_email[LANGUAGE_NONE][0]['value'];
+  // dpm($domain);
+  $curr_user = count($ay) - 1;
 
-   $domain=$obj->path;
-
-
-   // dpm($domain);
-    $curr_user=count($ay)-1;
-
-    $subject = t(''); // subject of e-mail
+  $subject = t(''); // subject of e-mail
 //  $body = "Hi".$form['name']['#value']." You had created a activity survey form. The path is http://54.199.171.173/drupal".$domain; //it might be any variable from the form eg. $form_state['values']['your_field']
-    $body=t("Hi @name.\n\n @current-user has updated your survey form.\n\n E-mail sent from @site-name and survey path is @site-path.\n\n ",
-     array('@name' => $node->field_name[LANGUAGE_NONE][0]['value'],
-    	   '@current-user'=>$ay[$curr_user]->name,
-    	   '@site-name' => variable_get('site_name', 'Drupal'),
-    	   '@site-path' => $base_url.'/'.$domain,// . '/' . drupal_get_path('module', 'custom')('site_path', 'Drupal'),
-    	   )
-     );
+  $body = t("Hi @name.\n\n @current-user has updated your survey form.\n\n E-mail sent from @site-name and survey path is @site-path.\n\n ", array('@name' => $node->field_name[LANGUAGE_NONE][0]['value'],
+    '@current-user' => $ay[$curr_user]->name,
+    '@site-name' => variable_get('site_name', 'Drupal'),
+    '@site-path' => $base_url . '/' . $domain, // . '/' . drupal_get_path('module', 'custom')('site_path', 'Drupal'),
+          )
+  );
 //echo $base_url . '/' . drupal_get_path('module', 'custom') .
 //params is the array passed to hook_mail function
-    $params = array(
-     'subject' => $subject,
-     'body' => array(token_replace($body, array('callback' => 'user_mail_tokens', 'sanitize' => FALSE)),),
-     );
+  $params = array(
+    'subject' => $subject,
+    'body' => array(token_replace($body, array('callback' => 'user_mail_tokens', 'sanitize' => FALSE)),),
+  );
 
-    /*Dun Add for async mail*/
+  /* Dun Add for async mail */
 
-    $status=1; //0 = submit; 1= save;
-	$queue = DrupalQueue::get('my_queue_name');
-	$queue->createQueue();
+  $status = 1; //0 = submit; 1= save;
+  $queue = DrupalQueue::get('my_queue_name');
+  $queue->createQueue();
 //	$queue->createItem(array('id' => $user_address, 'mail_body'=>$params));
-	$queue->createItem(array('id' => $user_address, 'mail_body'=>$params, 'status'=>$status));
+  $queue->createItem(array('id' => $user_address, 'mail_body' => $params, 'status' => $status));
 //	$items=$queue->claimItem();
 //	dpm($items);
 //	$id = $items->data['id'];
 //	drupal_set_message('id=');
 //	drupal_set_message($id);
-		//now call the URL for processing
-	$salt = drupal_get_hash_salt();
-	$key = $node->field_name[LANGUAGE_NONE][0]['value']; //generate a random string
-	$hash = hash('sha1', $salt . $key);
-	$url = url("send-sms/$key/$hash", array('absolute' => TRUE));
-	curl_request_async($url, array(), 'GET');
-      
-
+  //now call the URL for processing
+  $salt = drupal_get_hash_salt();
+  $key = $node->field_name[LANGUAGE_NONE][0]['value']; //generate a random string
+  $hash = hash('sha1', $salt . $key);
+  $url = url("send-sms/$key/$hash", array('absolute' => TRUE));
+  curl_request_async($url, array(), 'GET');
 }
 
 function get_location_woeid($objNode, $form_location) {
-    // Get latitude & longitude from google
-    $address = urlencode($form_location);
-    $region = "taipei";
-    $json = file_get_contents("http://maps.google.com/maps/api/geocode/json?address=$address&sensor=false&region=$region");
+  // Get latitude & longitude from google
+  $address = urlencode($form_location);
+  $region = "taipei";
+  $json = file_get_contents("http://maps.google.com/maps/api/geocode/json?address=$address&sensor=false&region=$region");
 
-    $decoded = json_decode($json);
-    if ($decoded->status == "OK") {
-        $lat = $decoded->{'results'}[0]->{'geometry'}->{'location'}->{'lat'};
-        $lng = $decoded->{'results'}[0]->{'geometry'}->{'location'}->{'lng'};
+  $decoded = json_decode($json);
+  if ($decoded->status == "OK") {
+    $lat = $decoded->{'results'}[0]->{'geometry'}->{'location'}->{'lat'};
+    $lng = $decoded->{'results'}[0]->{'geometry'}->{'location'}->{'lng'};
 
-        // Form YQL query and build URI to YQL Web service
-        $YQL_URL = "https://query.yahooapis.com/v1/public/yql";
-        $location = $lat . ", " . $lng;
-        $query = "geo.placefinder";
-        $yql_query = "select * from $query where text=\"$location\" and gflags=\"R\"";
-        $yql_query_url = $YQL_URL . "?q=" . urlencode($yql_query) . "&format=json";
+    // Form YQL query and build URI to YQL Web service
+    $YQL_URL = "https://query.yahooapis.com/v1/public/yql";
+    $location = $lat . ", " . $lng;
+    $query = "geo.placefinder";
+    $yql_query = "select * from $query where text=\"$location\" and gflags=\"R\"";
+    $yql_query_url = $YQL_URL . "?q=" . urlencode($yql_query) . "&format=json";
 
-        // Make call with cURL
-        $session = curl_init($yql_query_url);
-        curl_setopt($session, CURLOPT_RETURNTRANSFER, true);
-        $json = curl_exec($session);
+    // Make call with cURL
+    $session = curl_init($yql_query_url);
+    curl_setopt($session, CURLOPT_RETURNTRANSFER, true);
+    $json = curl_exec($session);
 
-        // Convert JSON to PHP object
-        $phpObj = json_decode($json);
+    // Convert JSON to PHP object
+    $phpObj = json_decode($json);
 
-        // Confirm that results were returned before parsing
-        if (!is_null($phpObj->query->results))
-        {
+    // Confirm that results were returned before parsing
+    if (!is_null($phpObj->query->results)) {
 //            drupal_set_message($phpObj->query->results->Result->woeid);
-            $objNode->field_woeid[LANGUAGE_NONE][0]['value'] = $phpObj->query->results->Result->woeid;
-        }
+      $objNode->field_woeid[LANGUAGE_NONE][0]['value'] = $phpObj->query->results->Result->woeid;
     }
+  }
 }
-
-?>
