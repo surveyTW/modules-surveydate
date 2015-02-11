@@ -619,6 +619,7 @@ function _update_surveydate_page() {
         $query->condition('node.status', 0);
         $query->condition('node.type', array(edited_survey), 'IN');
         $query->condition('field_data_field_nid.field_nid_value', $nid);
+        $query->condition('node.uid', $user->uid);
         $result = $query->execute();
         foreach ($result as $i => $row) {
             node_delete($row->nid);
