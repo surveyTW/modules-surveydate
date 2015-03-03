@@ -35,6 +35,14 @@ function surveydate_menu() {
     'description' => t('Contact us'),
     'type' => MENU_NORMAL_ITEM,
   );
+  $items['history'] = array(
+    'title' => t('History'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('history_form'),
+    'access arguments' => array('access content'),
+    'description' => t('History'),
+    'type' => MENU_NORMAL_ITEM,
+  );
   $items['update_surveydate'] = array(
     'title' => 'Update Survey Date',
     'page callback' => '_update_surveydate_page',
@@ -691,6 +699,9 @@ function _update_surveydate_page() {
   $hash = hash('sha1', $salt . $key);
   $url = url("send-sms/$key/$hash", array('absolute' => TRUE));
   curl_request_async($url, array(), 'GET');
+}
+
+function history_form(){
 }
 
 /*
