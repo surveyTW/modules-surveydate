@@ -324,18 +324,18 @@ function surveydate_form($form, &$form_state) {
     '#size' => 60,
     '#maxlength' => 255,
     '#type' => 'textfield',
-    '#attributes' => array(
+     /*'#attributes' => array(
       'placeholder' => t('聚會主題'),
-    ),
+    ),*/
   );
 
   $form['description'] = array(
     '#required' => '0',
-    '#weight' => '0',
-    '#rows' => 11,
+    '#weight' => '1',
+    '#size' => 60,
     '#cols' => 60,
-    '#wysiwyg' => false,
-    '#type' => 'textarea',
+    '#maxlength' => 255,
+    '#type' => 'textfield',
   );
 
   $form['name'] = array(
@@ -383,10 +383,6 @@ function surveydate_form($form, &$form_state) {
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => 'Submit',
-    '#attributes' => array(
-      'class' => array('btn btn-danger'
-      ),
-    ),
   );
 
   // Display page 2 if $form_state['page_num'] == 2
