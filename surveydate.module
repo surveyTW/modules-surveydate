@@ -382,7 +382,7 @@ function surveydate_form($form, &$form_state) {
 
   $form['submit'] = array(
     '#type' => 'submit',
-    '#value' => 'Submit',
+    '#value' => '',
   );
 
   // Display page 2 if $form_state['page_num'] == 2
