@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 /**
  * Implements hook_permission().
@@ -19,20 +19,13 @@ function surveydate_permission() {
  */
 function surveydate_menu() {
   $items = array();
+  
   $items['surveydate'] = array(
     'title' => t('Survey Date'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('surveydate_form'),
     'access arguments' => array('access surveydate content'),
     'description' => t('Survey Date'),
-    'type' => MENU_NORMAL_ITEM,
-  );
-  $items['contactus'] = array(
-    'title' => t('Contact us'),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('contactus_form'),
-    'access arguments' => array('access content'),
-    'description' => t('Contact us'),
     'type' => MENU_NORMAL_ITEM,
   );
   $items['history'] = array(
@@ -61,117 +54,6 @@ function surveydate_menu() {
   return $items;
 }
 
-// Adds a submit handler/function to our form to send a successful
-// completion message to the screen.
-function contactus_form_submit($form, &$form_state) {
-  submit_contactus($form, $form_state);
-//    drupal_set_message(t('The contact us form has been submitted.'));
-  $form_state['rebuild'] = TRUE;
-//    $form_state['my_var']['page_num'] = 2;
-}
-
-function submit_contactus($form, &$form_state) {
-  global $user;
-
-  //Dun test mail code
-  global $base_url;
-
-//	drupal_set_message('submit_contact us');
-  $subject = t('Feedback from contact us form'); // subject of e-mail
-  //  $body = "Hi".$form['name']['#value']." You had created a activity survey form. The path is http://54.199.171.173/drupal".$domain; //it might be any variable from the form eg. $form_state['values']['your_field']
-  $body = t(" @name.\n\n feedback message .\n\n @description.\n\n Customer e-mail: @email ", array('@name' => $form['name']['#value'],
-    '@description' => $form['description']['#value'],
-    '@email' => $form['email']['#value'],
-          )
-  );
-
-  $params = array(
-    'subject' => $subject,
-    'body' => array(token_replace($body, array('callback' => 'user_mail_tokens', 'sanitize' => FALSE)),),
-  );
-
-  $user_address = $form['email']['#value'];
-
-  $sitemail = variable_get('site_mail', 'drupal');
-
-  /* Dun Add for async mail */
-  $status = 2; //0 = submit; 1= save; 2=contact us form
-  $queue = DrupalQueue::get('my_queue_name');
-  $queue->createQueue();
-  $queue->createItem(array('id' => $sitemail, 'mail_body' => $params, 'status' => $status));
-//	$items=$queue->claimItem();
-//	dpm($items);
-//	$id = $items->data['id'];
-//	drupal_set_message('id=');
-//	drupal_set_message($id);
-  //now call the URL for processing
-  $salt = drupal_get_hash_salt();
-  $key = $form['name']['#value']; //$node->field_name[LANGUAGE_NONE][0]['value']; //generate a random string
-  $hash = hash('sha1', $salt . $key);
-  $url = url("send-sms/$key/$hash", array('absolute' => TRUE));
-  curl_request_async($url, array(), 'GET');
-}
-
-/**
- * This function is called the "form builder". It builds the form.
- * Notice, it takes one argument, the $form_state
- */
-function contactus_form($form, &$form_state) {
-  global $user;
-
-  $form = array();
-
-  $form['survey_path'] = array(
-    '#type' => 'hidden',
-    '#value' => '',
-  );
-
-  if (!empty($user->name)) {
-    $user_name = $user->name;
-    $user_mail = $user->mail;
-  } else {
-    $user_name = t('Please input your name');
-    $user_mail = t('Please input your E-mail');
-  }
-
-  $form['description'] = array(
-    '#required' => '0',
-    '#weight' => '0',
-    '#rows' => 11,
-    '#cols' => 60,
-    '#wysiwyg' => false,
-    '#type' => 'textarea',
-  );
-
-  $form['name'] = array(
-    '#required' => '0',
-    '#weight' => '2',
-    '#size' => 60,
-    '#maxlength' => 255,
-    '#default_value' => $user_name,
-    '#type' => 'textfield',
-  );
-
-  $form['email'] = array(
-    '#required' => '0',
-    '#weight' => '3',
-    '#size' => 60,
-    '#maxlength' => 255,
-    '#default_value' => $user_mail,
-    '#type' => 'textfield',
-  );
-
-  $form['submit'] = array(
-    '#type' => 'submit',
-    '#value' => 'Submit',
-    '#attributes' => array(
-      'class' => array('btn btn-danger'
-      ),
-    ),
-  );
-
-  return $form;
-}
 
 /*
   Send mail by asynchronious method by Dun
