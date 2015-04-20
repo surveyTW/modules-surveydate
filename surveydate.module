@@ -59,7 +59,6 @@ function surveydate_menu() {
   Send mail by asynchronious method by Dun
  */
 function mymodule_process_sms() {
-//	drupal_set_message('mymodule_SMS_active');
   $queue = DrupalQueue::get('my_queue_name', TRUE);
 //	$queue->createQueue(); // There is no harm in trying to recreate existing.
 
@@ -73,7 +72,6 @@ function mymodule_process_sms() {
     if ($status == 1) {
       if (phpmailer_enabled()) {
         drupal_mail('surveydate', 'surveydate_save', $user_address, language_default(), $params);
-//      drupal_set_message(t('phpmailer was enabled.'));
       }
       // Otherwise, prepare and send the test mail manually.
       else {
@@ -376,7 +374,7 @@ function save_surveydate($form, &$form_state) {
   */
 
   /* Dun Add for async mail */
-  $status = 0; //0 = submit; 1= save;
+  $status = 2; //1 = save; 2= submit;
   $queue = DrupalQueue::get('my_queue_name');
   $queue->createQueue();
   $queue->createItem(array('id' => $user_address, 'mail_body' => $params, 'status' => $status));
