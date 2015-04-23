@@ -347,6 +347,7 @@ function save_surveydate($form, &$form_state) {
   $params = array(
     'subject' => $subject,
     'body' => array(token_replace($body, array('callback' => 'user_mail_tokens', 'sanitize' => FALSE)),),
+    'survey_url' => $base_url.'/'.$domain,
   );
 
   $user_address = $form['email']['#value'];
