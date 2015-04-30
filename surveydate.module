@@ -346,6 +346,8 @@ function save_surveydate($form, &$form_state) {
 //params is the array passed to hook_mail function
   $params = array(
     'subject' => $subject,
+    'title' => $form['title']['#value'],
+    'name' => $form['name']['#value'],
     'body' => array(token_replace($body, array('callback' => 'user_mail_tokens', 'sanitize' => FALSE)),),
     'survey_url' => $base_url.'/'.$domain,
   );
