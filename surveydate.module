@@ -429,7 +429,7 @@ function surveydate_mail($key, &$message, $params) {
 
     case 'surveydate_submit':
       // drupal_set_message(t('Case= Surveydate_submit'));
-      $message['subject'] = t('E-mail sent from @site-name', array('@site-name' => variable_get('site_name', 'Drupal')), $options);
+      $message['subject'] = t('聚會 @title 已發起', array('@title' => $params['title']), $options);
       // Note that the message body is an array, not a string.
 
       $message['body'] = $params['body'];
