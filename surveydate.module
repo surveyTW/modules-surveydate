@@ -429,7 +429,7 @@ function surveydate_mail($key, &$message, $params) {
 
     case 'surveydate_submit':
       // drupal_set_message(t('Case= Surveydate_submit'));
-      $message['subject'] = t('聚會 @title 已發起', array('@title' => $params['title']), $options);
+      $message['subject'] = t('聚會"@title"已發起', array('@title' => $params['title']), $options);
       // Note that the message body is an array, not a string.
 
       $message['body'] = $params['body'];
@@ -441,7 +441,7 @@ function surveydate_mail($key, &$message, $params) {
 
     case 'surveydate_save':
       // drupal_set_message(t('Case= Surveydate_submit'));
-      $message['subject'] = t('E-mail sent from @site-name', array('@site-name' => variable_get('site_name', 'Drupal')), $options);
+      $message['subject'] = t('@voter已在"@title"投票', array('@voter' => $params['voter'], '@title' => $params['title']), $options);
       // Note that the message body is an array, not a string.
 
       $message['body'] = $params['body'];
@@ -558,6 +558,10 @@ function _update_surveydate_page() {
   $params = array(
     'subject' => $subject,
     'body' => array(token_replace($body, array('callback' => 'user_mail_tokens', 'sanitize' => FALSE)),),
+    'name' => $node->field_name[LANGUAGE_NONE][0]['value'],
+    'title' => $node->title,
+    'survey_url' => $base_url.'/'.$domain,
+    'voter' => $ay[$curr_user]->name,
   );
 
   /* Dun Add for async mail */
