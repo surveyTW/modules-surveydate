@@ -42,6 +42,12 @@ function surveydate_menu() {
     'access arguments' => array('access update surveydate content'),
     'type' => MENU_CALLBACK,
   );
+  $items['stop_surveydate'] = array(
+    'title' => 'Stop Survey Date',
+    'page callback' => '_stop_surveydate_page',
+    'access arguments' => array('access stop surveydate content'),
+    'type' => MENU_CALLBACK,
+  );
 
   $items['send-sms/%/%'] = array(
     'title' => 'Send SMS From Queue',
@@ -451,6 +457,27 @@ function surveydate_mail($key, &$message, $params) {
 
       break;
   }
+}
+
+function _stop_surveydate_page($form, &$form_state) {
+    $oMessage = new stdClass();
+    $json = file_get_contents('php://input');
+    $obj = json_decode($json);
+    $tmp = explode('/', drupal_get_normal_path($obj->path));
+    $nid = $tmp[1];
+    $node = node_load($nid);
+    if($node){
+        $node->field_stopdate[LANGUAGE_NONE][0]['value'] = $obj->data;
+        node_save($node);
+        $oMessage->code = 1;
+        $oMessage->message = 'OK';
+    }
+    else{
+        $oMessage->code = 0;
+        $oMessage->message = 'ERROR';
+    }
+    echo json_encode($oMessage);
+    //e-mail send to all users
 }
 
 function _update_surveydate_page() {
