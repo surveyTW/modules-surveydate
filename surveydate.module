@@ -10,6 +10,9 @@ function surveydate_permission() {
     ),
     'access update surveydate content' => array(
       'title' => t('Access content for the Update Survey Date module'),
+    ),
+    'access stop surveydate content' => array(
+      'title' => t('Access content for the Stop Survey Date module'),
     )
   );
 }
