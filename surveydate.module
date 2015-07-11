@@ -277,6 +277,7 @@ function surveydate_form($form, &$form_state) {
   // Display page 2 if $form_state['page_num'] == 2
   if (!empty($form_state['my_var']['page_num']) && $form_state['my_var']['page_num'] == 2) {
     $form['survey_path']['#value'] = $form_state['my_var']['survey_path'];
+    $form['shorturl']['#value'] = $form_state['my_var']['shorturl'];
   }
 
   // Otherwise we build page 1.
@@ -301,8 +302,32 @@ function surveydate_form_submit($form, &$form_state) {
   $form_state['my_var']['page_num'] = 2;
 }
 
+function short_url($longUrl){
+    //dvm($longUrl);
+    $apiKey = 'AIzaSyDK_DFlAc0H32pXT7_VRjFa_Jb54tZJbxQ';
+    //You can get API key here : http://code.google.com/apis/console/
+
+    $postData = array('longUrl' => $longUrl, 'key' => $apiKey);
+    $jsonData = json_encode($postData);
+
+    $curlObj = curl_init();
+    curl_setopt($curlObj, CURLOPT_URL, 'https://www.googleapis.com/urlshortener/v1/url?key=AIzaSyDK_DFlAc0H32pXT7_VRjFa_Jb54tZJbxQ');
+    curl_setopt($curlObj, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($curlObj, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_setopt($curlObj, CURLOPT_HEADER, 0);
+    curl_setopt($curlObj, CURLOPT_HTTPHEADER, array('Content-type:application/json'));
+    curl_setopt($curlObj, CURLOPT_POST, 1);
+    curl_setopt($curlObj, CURLOPT_POSTFIELDS, $jsonData);
+    $response = curl_exec($curlObj);
+    $json = json_decode($response);
+    curl_close($curlObj);
+    return $json->id;
+}
+
 function save_surveydate($form, &$form_state) {
   global $user;
+  //Dun test mail code
+  global $base_url;
 
   $objNode = new stdClass();
   $objNode->title = $form['title']['#value'];
@@ -328,18 +353,19 @@ function save_surveydate($form, &$form_state) {
   $objNode->field_result[LANGUAGE_NONE][0]['value'] = '';
 
   $objNode = node_submit($objNode); // Prepare node for saving
+  $domain = md5($user->name . time());
+  $objNode->field_shorturl[LANGUAGE_NONE][0]['value'] = short_url($base_url.'/'.$domain);
+  //dvm($objNode->field_shorturl[LANGUAGE_NONE][0]['value']);
   node_save($objNode);
 
   // Create a path alias for the node.
-  $domain = md5($user->name . time());
+  //$domain = md5($user->name . time());
 
   $path['alias'] = $domain;
   $path['source'] = 'node/' . $objNode->nid;
   $path['language'] = LANGUAGE_NONE;
   path_save($path);
 
-  //Dun test mail code
-  global $base_url;
 
   //drupal_set_message($path['source']);
   //drupal_set_message($base_url);
@@ -403,6 +429,7 @@ function save_surveydate($form, &$form_state) {
   curl_request_async($url, array(), 'GET');
 
   $form_state['my_var']['survey_path'] = $base_url . '/' . $domain;
+  $form_state['my_var']['shorturl'] = $objNode->field_shorturl[LANGUAGE_NONE][0]['value'];
 }
 
 /**
