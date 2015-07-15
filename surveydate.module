@@ -114,6 +114,24 @@ function mymodule_process_sms() {
         //drupal_set_message(t('phpmailer was disabled.'));
       }
       $queue->deleteItem($item);
+    } 
+    else if ($status == 3) {
+      if (phpmailer_enabled()) {
+        drupal_mail('surveydate', 'surveydate_stop', $user_address, language_default(), $params);
+//              drupal_set_message(t('phpmailer was enabled.'));
+      }
+      // Otherwise, prepare and send the test mail manually.
+      else {
+        // Prepare the message without sending.
+        $message = drupal_mail('surveydate', 'surveydate_stop', $user_address, NULL, $params, NULL, FALSE);
+        //Send the message. drupal_mail_wrapper() is only defined when PHPMailer
+        //is enabled, so drupal_mail_send() cannot be used.
+        // @see drupal_mail_send()
+        //module_load_include('inc', 'phpmailer', 'includes/phpmailer.drupal');
+        //phpmailer_send($message);
+        //drupal_set_message(t('phpmailer was disabled.'));
+      }
+      $queue->deleteItem($item);
     } else {
 
       if (phpmailer_enabled()) {
@@ -412,7 +430,7 @@ function save_surveydate($form, &$form_state) {
   */
 
   /* Dun Add for async mail */
-  $status = 2; //1 = save; 2= submit;
+  $status = 2; //1 = save; 2= submit;3=stop;
   $queue = DrupalQueue::get('my_queue_name');
   $queue->createQueue();
   $queue->createItem(array('id' => $user_address, 'mail_body' => $params, 'status' => $status));
@@ -486,6 +504,18 @@ function surveydate_mail($key, &$message, $params) {
       //   drupal_set_message($params['body']);
 
       break;
+  
+      case 'surveydate_stop':
+      // drupal_set_message(t('Case= Surveydate_stop'));
+      $message['subject'] = t('@voter已在"@title"投票', array('@voter' => $params['voter'], '@title' => $params['title']), $options);
+      // Note that the message body is an array, not a string.
+
+      $message['body'] = $params['body'];
+      //$message['body'][] = t('@name sent you the following message:', array('@name' => $user->name), $options);
+      //$message['body'][] = check_plain($params['message']);
+      //   drupal_set_message($params['body']);
+
+      break;
   }
 }
 
@@ -508,6 +538,78 @@ function _stop_surveydate_page($form, &$form_state) {
     }
     echo json_encode($oMessage);
     //e-mail send to all users
+
+
+global $base_url;
+//multiple addresses
+  $mailloop=array();
+  $Host_mail = $node->field_email[LANGUAGE_NONE][0]['value'];
+  $all_voters_result=$node->field_survey[LANGUAGE_NONE][0]['value'];
+  
+  if(isset($all_voters_result)){
+  $ay_all_results=json_decode($all_voters_result);
+ // dpm($ay_all_results);
+  $mailloop[0]=$Host_mail;
+  $i=1;
+  foreach($ay_all_results as $value){
+      $ay_all_results=array();
+      $user_fields=user_load($value->uid);
+      $user_mails=$user_fields->mail;
+      if(strcmp($Host_mail,$user_mails))
+      {
+         $mailloop[$i]=$user_mails;
+         $i++;
+      }
+
+  }
+  $user_address=implode(",",$mailloop);
+  dpm($user_address);
+ 
+   
+//multiple_address--end
+   
+  $domain = $obj->path;
+
+  // dpm($domain);
+
+  $subject = t(''); // subject of e-mail
+  $body = t("Hi ALL.\n\n @name close this surevey.\n\n E-mail sent from @site-name and survey path is @site-path.\n\n ", array('@name' => $node->field_name[LANGUAGE_NONE][0]['value'],
+    '@site-name' => variable_get('site_name', 'Drupal'),
+    '@site-path' => $base_url . '/' . $domain, // . '/' . drupal_get_path('module', 'custom')('site_path', 'Drupal'),
+          )
+  );
+//echo $base_url . '/' . drupal_get_path('module', 'custom') .
+//params is the array passed to hook_mail function
+  $params = array(
+    'subject' => $subject,
+    'body' => array(token_replace($body, array('callback' => 'user_mail_tokens', 'sanitize' => FALSE)),),
+    'name' => $node->field_name[LANGUAGE_NONE][0]['value'],
+    'title' => $node->title,
+    'survey_url' => $base_url.'/'.$domain,
+ //   'voter' => $ay[$curr_user]->name,
+  );
+
+  /* Dun Add for async mail */
+
+  $status = 3; //1 = save; 2= submit;3=stop
+  $queue = DrupalQueue::get('my_queue_name');
+  $queue->createQueue();
+//	$queue->createItem(array('id' => $user_address, 'mail_body'=>$params));
+  $queue->createItem(array('id' => $user_address, 'mail_body' => $params, 'status' => $status));
+//	$items=$queue->claimItem();
+//	dpm($items);
+//	$id = $items->data['id'];
+//	drupal_set_message('id=');
+//	drupal_set_message($id);
+  //now call the URL for processing
+  $salt = drupal_get_hash_salt();
+  $key = $node->field_name[LANGUAGE_NONE][0]['value']; //generate a random string
+  $hash = hash('sha1', $salt . $key);
+  $url = url("send-sms/$key/$hash", array('absolute' => TRUE));
+  curl_request_async($url, array(), 'GET');
+
+}
+
 }
 
 function _update_surveydate_page() {
@@ -623,7 +725,7 @@ function _update_surveydate_page() {
 
   /* Dun Add for async mail */
 
-  $status = 1; //0 = submit; 1= save;
+  $status = 1; //1= save;2=submit;3=stop;
   $queue = DrupalQueue::get('my_queue_name');
   $queue->createQueue();
 //	$queue->createItem(array('id' => $user_address, 'mail_body'=>$params));
