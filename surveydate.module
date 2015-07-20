@@ -10,6 +10,9 @@ function surveydate_permission() {
     ),
     'access update surveydate content' => array(
       'title' => t('Access content for the Update Survey Date module'),
+    ),
+    'access stop surveydate content' => array(
+      'title' => t('Access content for the Stop Survey Date module'),
     )
   );
 }
@@ -40,6 +43,12 @@ function surveydate_menu() {
     'title' => 'Update Survey Date',
     'page callback' => '_update_surveydate_page',
     'access arguments' => array('access update surveydate content'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['stop_surveydate'] = array(
+    'title' => 'Stop Survey Date',
+    'page callback' => '_stop_surveydate_page',
+    'access arguments' => array('access stop surveydate content'),
     'type' => MENU_CALLBACK,
   );
 
@@ -97,6 +106,24 @@ function mymodule_process_sms() {
       else {
         // Prepare the message without sending.
         $message = drupal_mail('surveydate', 'surveydate_submit', $user_address, NULL, $params, NULL, FALSE);
+        //Send the message. drupal_mail_wrapper() is only defined when PHPMailer
+        //is enabled, so drupal_mail_send() cannot be used.
+        // @see drupal_mail_send()
+        //module_load_include('inc', 'phpmailer', 'includes/phpmailer.drupal');
+        //phpmailer_send($message);
+        //drupal_set_message(t('phpmailer was disabled.'));
+      }
+      $queue->deleteItem($item);
+    } 
+    else if ($status == 3) {
+      if (phpmailer_enabled()) {
+        drupal_mail('surveydate', 'surveydate_stop', $user_address, language_default(), $params);
+//              drupal_set_message(t('phpmailer was enabled.'));
+      }
+      // Otherwise, prepare and send the test mail manually.
+      else {
+        // Prepare the message without sending.
+        $message = drupal_mail('surveydate', 'surveydate_stop', $user_address, NULL, $params, NULL, FALSE);
         //Send the message. drupal_mail_wrapper() is only defined when PHPMailer
         //is enabled, so drupal_mail_send() cannot be used.
         // @see drupal_mail_send()
@@ -268,6 +295,7 @@ function surveydate_form($form, &$form_state) {
   // Display page 2 if $form_state['page_num'] == 2
   if (!empty($form_state['my_var']['page_num']) && $form_state['my_var']['page_num'] == 2) {
     $form['survey_path']['#value'] = $form_state['my_var']['survey_path'];
+    $form['shorturl']['#value'] = $form_state['my_var']['shorturl'];
   }
 
   // Otherwise we build page 1.
@@ -292,8 +320,32 @@ function surveydate_form_submit($form, &$form_state) {
   $form_state['my_var']['page_num'] = 2;
 }
 
+function short_url($longUrl){
+    //dvm($longUrl);
+    $apiKey = 'AIzaSyDK_DFlAc0H32pXT7_VRjFa_Jb54tZJbxQ';
+    //You can get API key here : http://code.google.com/apis/console/
+
+    $postData = array('longUrl' => $longUrl, 'key' => $apiKey);
+    $jsonData = json_encode($postData);
+
+    $curlObj = curl_init();
+    curl_setopt($curlObj, CURLOPT_URL, 'https://www.googleapis.com/urlshortener/v1/url?key=AIzaSyDK_DFlAc0H32pXT7_VRjFa_Jb54tZJbxQ');
+    curl_setopt($curlObj, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($curlObj, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_setopt($curlObj, CURLOPT_HEADER, 0);
+    curl_setopt($curlObj, CURLOPT_HTTPHEADER, array('Content-type:application/json'));
+    curl_setopt($curlObj, CURLOPT_POST, 1);
+    curl_setopt($curlObj, CURLOPT_POSTFIELDS, $jsonData);
+    $response = curl_exec($curlObj);
+    $json = json_decode($response);
+    curl_close($curlObj);
+    return $json->id;
+}
+
 function save_surveydate($form, &$form_state) {
   global $user;
+  //Dun test mail code
+  global $base_url;
 
   $objNode = new stdClass();
   $objNode->title = $form['title']['#value'];
@@ -319,18 +371,19 @@ function save_surveydate($form, &$form_state) {
   $objNode->field_result[LANGUAGE_NONE][0]['value'] = '';
 
   $objNode = node_submit($objNode); // Prepare node for saving
+  $domain = md5($user->name . time());
+  $objNode->field_shorturl[LANGUAGE_NONE][0]['value'] = short_url($base_url.'/'.$domain);
+  //dvm($objNode->field_shorturl[LANGUAGE_NONE][0]['value']);
   node_save($objNode);
 
   // Create a path alias for the node.
-  $domain = md5($user->name . time());
+  //$domain = md5($user->name . time());
 
   $path['alias'] = $domain;
   $path['source'] = 'node/' . $objNode->nid;
   $path['language'] = LANGUAGE_NONE;
   path_save($path);
 
-  //Dun test mail code
-  global $base_url;
 
   //drupal_set_message($path['source']);
   //drupal_set_message($base_url);
@@ -377,7 +430,7 @@ function save_surveydate($form, &$form_state) {
   */
 
   /* Dun Add for async mail */
-  $status = 2; //1 = save; 2= submit;
+  $status = 2; //1 = save; 2= submit;3=stop;
   $queue = DrupalQueue::get('my_queue_name');
   $queue->createQueue();
   $queue->createItem(array('id' => $user_address, 'mail_body' => $params, 'status' => $status));
@@ -394,6 +447,7 @@ function save_surveydate($form, &$form_state) {
   curl_request_async($url, array(), 'GET');
 
   $form_state['my_var']['survey_path'] = $base_url . '/' . $domain;
+  $form_state['my_var']['shorturl'] = $objNode->field_shorturl[LANGUAGE_NONE][0]['value'];
 }
 
 /**
@@ -450,7 +504,112 @@ function surveydate_mail($key, &$message, $params) {
       //   drupal_set_message($params['body']);
 
       break;
+  
+      case 'surveydate_stop':
+      // drupal_set_message(t('Case= Surveydate_stop'));
+      $message['subject'] = t('@voter已在"@title"投票', array('@voter' => $params['voter'], '@title' => $params['title']), $options);
+      // Note that the message body is an array, not a string.
+
+      $message['body'] = $params['body'];
+      //$message['body'][] = t('@name sent you the following message:', array('@name' => $user->name), $options);
+      //$message['body'][] = check_plain($params['message']);
+      //   drupal_set_message($params['body']);
+
+      break;
   }
+}
+
+function _stop_surveydate_page($form, &$form_state) {
+    $oMessage = new stdClass();
+    $json = file_get_contents('php://input');
+    $obj = json_decode($json);
+    $tmp = explode('/', drupal_get_normal_path($obj->path));
+    $nid = $tmp[1];
+    $node = node_load($nid);
+    if($node){
+        $node->field_stopdate[LANGUAGE_NONE][0]['value'] = $obj->data;
+        node_save($node);
+        $oMessage->code = 1;
+        $oMessage->message = 'OK';
+    }
+    else{
+        $oMessage->code = 0;
+        $oMessage->message = 'ERROR';
+    }
+    echo json_encode($oMessage);
+    //e-mail send to all users
+
+
+global $base_url;
+//multiple addresses
+  $mailloop=array();
+  $Host_mail = $node->field_email[LANGUAGE_NONE][0]['value'];
+  $all_voters_result=$node->field_survey[LANGUAGE_NONE][0]['value'];
+  
+  if(isset($all_voters_result)){
+  $ay_all_results=json_decode($all_voters_result);
+ // dpm($ay_all_results);
+  $mailloop[0]=$Host_mail;
+  $i=1;
+  foreach($ay_all_results as $value){
+      $ay_all_results=array();
+      $user_fields=user_load($value->uid);
+      $user_mails=$user_fields->mail;
+      if(strcmp($Host_mail,$user_mails))
+      {
+         $mailloop[$i]=$user_mails;
+         $i++;
+      }
+
+  }
+  $user_address=implode(",",$mailloop);
+  //dpm($user_address);
+ 
+   
+//multiple_address--end
+   
+  $domain = $obj->path;
+
+  // dpm($domain);
+
+  $subject = t(''); // subject of e-mail
+  $body = t("Hi ALL.\n\n @name close this surevey.\n\n E-mail sent from @site-name and survey path is @site-path.\n\n ", array('@name' => $node->field_name[LANGUAGE_NONE][0]['value'],
+    '@site-name' => variable_get('site_name', 'Drupal'),
+    '@site-path' => $base_url . '/' . $domain, // . '/' . drupal_get_path('module', 'custom')('site_path', 'Drupal'),
+          )
+  );
+//echo $base_url . '/' . drupal_get_path('module', 'custom') .
+//params is the array passed to hook_mail function
+  $params = array(
+    'subject' => $subject,
+    'body' => array(token_replace($body, array('callback' => 'user_mail_tokens', 'sanitize' => FALSE)),),
+    'name' => $node->field_name[LANGUAGE_NONE][0]['value'],
+    'title' => $node->title,
+    'survey_url' => $base_url.'/'.$domain,
+ //   'voter' => $ay[$curr_user]->name,
+  );
+
+  /* Dun Add for async mail */
+
+  $status = 3; //1 = save; 2= submit;3=stop
+  $queue = DrupalQueue::get('my_queue_name');
+  $queue->createQueue();
+//	$queue->createItem(array('id' => $user_address, 'mail_body'=>$params));
+  $queue->createItem(array('id' => $user_address, 'mail_body' => $params, 'status' => $status));
+//	$items=$queue->claimItem();
+//	dpm($items);
+//	$id = $items->data['id'];
+//	drupal_set_message('id=');
+//	drupal_set_message($id);
+  //now call the URL for processing
+  $salt = drupal_get_hash_salt();
+  $key = $node->field_name[LANGUAGE_NONE][0]['value']; //generate a random string
+  $hash = hash('sha1', $salt . $key);
+  $url = url("send-sms/$key/$hash", array('absolute' => TRUE));
+  curl_request_async($url, array(), 'GET');
+
+}
+
 }
 
 function _update_surveydate_page() {
@@ -566,7 +725,7 @@ function _update_surveydate_page() {
 
   /* Dun Add for async mail */
 
-  $status = 1; //0 = submit; 1= save;
+  $status = 1; //1= save;2=submit;3=stop;
   $queue = DrupalQueue::get('my_queue_name');
   $queue->createQueue();
 //	$queue->createItem(array('id' => $user_address, 'mail_body'=>$params));
